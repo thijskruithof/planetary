@@ -1,25 +1,12 @@
 import 'dart:html';
-import 'dart:web_gl';
-import 'dart:typed_data';
+import 'package:pedantic/pedantic.dart';
 import 'package:planetary/planetary.dart' as planetary;
 
 CanvasElement canvas = document.getElementById('planetaryCanvas');
-RenderingContext gl;
 planetary.Map map;
 num counter;
 num canvasWidth;
 num canvasHeight;
-
-Future<void> initGL() async {
-  canvasWidth = canvas.width;
-  canvasHeight = canvas.height;
-
-  map = planetary.Map(gl);
-
-  await map.init(canvas.width, canvas.height);
-
-  print('planetary: initialized.');
-}
 
 void render(num deltaTime) {
   // Resize our canvas?
@@ -32,21 +19,26 @@ void render(num deltaTime) {
     map.resize(canvas.width, canvas.height);
   }
 
+  // Render a frame
   map.render();
 
-  // redraw when ready
+  // Schedule next frame
   window.animationFrame.then(render);
 }
 
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
 
 void main() async {
-  gl = canvas.getContext3d();
-  assert(gl != null);
+  canvasWidth = canvas.width;
+  canvasHeight = canvas.height;
 
-  counter = 0;
+  var dimensions = planetary.MapDimensions(512, 64, 32);
 
-  await initGL();
+  map = planetary.Map(canvas, dimensions, 'mars/', 60.0, 28.0);
 
-  window.animationFrame.then(render);
+  await map.init();
+
+  print('planetary: initialized.');
+
+  unawaited(window.animationFrame.then(render));
 }
