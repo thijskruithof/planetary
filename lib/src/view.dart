@@ -93,6 +93,10 @@ class View {
     return _screenRect.size.x / _screenRect.size.y;
   }
 
+  Camera get camera {
+    return _camera;
+  }
+
   void fitToContent(Rect worldRect) {
     // Scale
     var worldSize = worldRect.size;

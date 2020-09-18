@@ -77,6 +77,10 @@ class Camera {
         _viewProjectionMatrix = List<double>.from(other._viewProjectionMatrix),
         _frustum = Frustum2d.copy(other._frustum);
 
+  Frustum2d get frustum {
+    return _frustum;
+  }
+
   /// Convert screen-space position [pos] to a 2D world-space position (at Z=0).
   Vector2 unproject(Vector2 pos) {
     // First convert pos (in pixels) to normalized device coords (-1..1)
