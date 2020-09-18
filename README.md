@@ -1,4 +1,3 @@
-An absolute bare-bones web app.
+A planetary surface visualization.
 
-Created from templates made available by Stagehand under a BSD-style
-[license](https://github.com/dart-lang/stagehand/blob/master/LICENSE).
+Written in [Dart](https://dart.dev/), powered by WebGL.
