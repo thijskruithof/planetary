@@ -96,9 +96,9 @@ class FrustumEdge {
 
   /// Make a copy of frustum edge [other]
   FrustumEdge.copy(FrustumEdge other)
-      : _dir = other._dir,
-        _pos = other._pos,
-        _perpDirInside = other._perpDirInside;
+      : _dir = Vector2.copy(other._dir),
+        _pos = Vector2.copy(other._pos),
+        _perpDirInside = Vector2.copy(other._perpDirInside);
 
   /// Calculate intersection of this edge with [otherEdge]
   /// Returns the 2D intersection position

@@ -22,6 +22,8 @@ class Frustum2d {
   Frustum2d(List<double> viewProjMatrix) {
     // Based on http://www.cs.otago.ac.nz/postgrads/alexis/planeExtraction.pdf
 
+    assert(viewProjMatrix.length == 16);
+
     // Extract our frustum's four bounding edges first.
 
     _edgeLeft = FrustumEdge(
@@ -65,10 +67,10 @@ class Frustum2d {
   Frustum2d.copy(Frustum2d other)
       : _edgeLeft = FrustumEdge.copy(other._edgeLeft),
         _edgeRight = FrustumEdge.copy(other._edgeRight),
-        _posTopLeft = other._posTopLeft,
-        _posBottomLeft = other._posBottomLeft,
-        _posTopRight = other._posTopRight,
-        _posBottomRight = other._posBottomRight,
+        _posTopLeft = Vector2.copy(other._posTopLeft),
+        _posBottomLeft = Vector2.copy(other._posBottomLeft),
+        _posTopRight = Vector2.copy(other._posTopRight),
+        _posBottomRight = Vector2.copy(other._posBottomRight),
         _worldBoundsRect = Rect.copy(other._worldBoundsRect);
 
   /// Check if this 2D frustum overlaps with world-space rectangle [worldRect]

@@ -5,10 +5,12 @@ class Rect {
   Vector2 min;
   Vector2 max;
 
-  Rect(this.min, this.max);
+  Rect(Vector2 min, Vector2 max)
+      : min = Vector2.copy(min),
+        max = Vector2.copy(max);
   Rect.copy(Rect other)
-      : min = other.min,
-        max = other.max;
+      : min = Vector2.copy(other.min),
+        max = Vector2.copy(other.max);
 
   Vector2 get center {
     return (min + max) * 0.5;

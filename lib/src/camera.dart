@@ -22,7 +22,7 @@ class Camera {
       double cameraNear,
       double cameraFar) {
     // Store our screen rect
-    _screenRect = screenRect;
+    _screenRect = Rect.copy(screenRect);
 
     // Calculate Z of the camera
     var halfScreenWorldHeight = 0.5 * screenRect.size.y * worldScale;
@@ -70,9 +70,9 @@ class Camera {
 
   /// Make a copy of Camera [other]
   Camera.copy(Camera other)
-      : _pos = other._pos,
-        _targetPos = other._targetPos,
-        _up = other._up,
+      : _pos = Vector3.copy(other._pos),
+        _targetPos = Vector3.copy(other._targetPos),
+        _up = Vector3.copy(other._up),
         _screenRect = Rect.copy(other._screenRect),
         _viewProjectionMatrix = List<double>.from(other._viewProjectionMatrix),
         _frustum = Frustum2d.copy(other._frustum);
@@ -166,14 +166,11 @@ class Camera {
     // normalize camera local Z vector
     z.normalize();
 
-    // calculate camera Y vector
-    var y = up;
-
     // compute camera local X vector as up vector (local Y) cross local Z
-    var x = y.cross(z);
+    var x = up.cross(z);
 
-    // recompute y = z cross x
-    y = z.cross(x);
+    // compute y = z cross x
+    var y = z.cross(x);
 
     // cross product gives area of parallelogram, which is < 1.0 for
     // non-perpendicular unit-length vectors; so normalize x, y here:
@@ -181,19 +178,22 @@ class Camera {
     y.normalize();
 
     // Calculate orientation matrix
-    var mat4 = List<double>.filled(16, 0.0);
+    var mat4 = List<double>(16);
 
     mat4[0] = x.x;
     mat4[1] = y.x;
     mat4[2] = z.x;
+    mat4[3] = 0.0;
 
     mat4[4] = x.y;
     mat4[5] = y.y;
     mat4[6] = z.y;
+    mat4[7] = 0.0;
 
     mat4[8] = x.z;
     mat4[9] = y.z;
     mat4[10] = z.z;
+    mat4[11] = 0.0;
 
     // Add inverse camera position
     var t = -pos;

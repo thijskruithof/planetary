@@ -6,7 +6,6 @@ import 'package:vector_math/vector_math.dart';
 
 import 'view.dart';
 import 'mapdimensions.dart';
-import 'math.dart';
 import 'tile.dart';
 import 'rect.dart';
 
@@ -21,27 +20,47 @@ Float32List _vertices =
 class Map {
   final RenderingContext _gl;
   final MapDimensions _dimensions;
-  final String _tileImagePath;
+  final String _tileImagesBasePath;
   int _screenWidth;
   int _screenHeight;
   View _view;
+  Tile _rootTile;
 
-  Map(CanvasElement canvas, MapDimensions dimensions, String tileImagePath,
+  Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
       : _gl = canvas.getContext3d(),
         _dimensions = dimensions,
-        _tileImagePath = tileImagePath {
+        _tileImagesBasePath = tileImagesBasePath {
     assert(_gl != null);
 
     _screenWidth = canvas.width;
     _screenHeight = canvas.height;
 
+    // Construct our view
     _view = View(
         dimensions,
         Rect(Vector2.zero(),
             Vector2(_screenWidth.toDouble(), _screenHeight.toDouble())),
         verticalFOVinDegrees,
         pitchAngle);
+
+    _view.fitToContent(Rect(Vector2(8, 8), Vector2(9, 9)));
+
+    // Create our tree of tiles
+    var maxTilesPerAxisLod0 =
+        max(dimensions.numTilesXLod0, dimensions.numTilesYLod0);
+    _rootTile = Tile(
+        null,
+        dimensions.numLods - 1,
+        Rect(
+            Vector2.zero(),
+            Vector2(maxTilesPerAxisLod0.toDouble(),
+                maxTilesPerAxisLod0.toDouble())),
+        Point<int>(0, 0),
+        Point<int>(0, 0),
+        tileImagesBasePath,
+        dimensions);
+    _createTileChildrenRecursive(_rootTile);
   }
 
   /// Initialize the map
@@ -104,5 +123,33 @@ class Map {
 
   Future<String> _downloadTextFile(String url) {
     return HttpRequest.getString(url);
+  }
+
+  /// Create child tiles for the given tile, for all lod levels until lod 0.
+  void _createTileChildrenRecursive(Tile tile) {
+    if (tile.lod == 0) return;
+
+    var childTileSize = tile.worldRect.size * 0.5;
+
+    for (var y = 0; y < 2; ++y) {
+      for (var x = 0; x < 2; ++x) {
+        var rectMin = tile.worldRect.min +
+            Vector2(childTileSize.x * x, childTileSize.y * y);
+        var rect = Rect(rectMin, rectMin + childTileSize);
+        var newTile = Tile(
+            tile,
+            tile.lod - 1,
+            rect,
+            Point<int>(tile.cellIndex.x * 2 + x, tile.cellIndex.y * 2 + y),
+            Point<int>(x, y),
+            _tileImagesBasePath,
+            _dimensions);
+        tile.children.add(newTile);
+
+        //gTileGrids[tile.lod - 1].addTile(newTile);
+
+        _createTileChildrenRecursive(newTile);
+      }
+    }
   }
 }
