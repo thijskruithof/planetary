@@ -8,6 +8,7 @@ import 'view.dart';
 import 'mapdimensions.dart';
 import 'tile.dart';
 import 'rect.dart';
+import 'tilegrid.dart';
 
 class InitShadersException implements Exception {
   InitShadersException(shadersLog);
@@ -25,6 +26,7 @@ class Map {
   int _screenHeight;
   View _view;
   Tile _rootTile;
+  List<TileGrid> _tileGrids;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
@@ -46,6 +48,12 @@ class Map {
 
     _view.fitToContent(Rect(Vector2(8, 8), Vector2(9, 9)));
 
+    // Create our empty grids
+    _tileGrids = [];
+    for (var lod = 0; lod < dimensions.numLods; lod++) {
+      _tileGrids.add(TileGrid(lod, pow(2, (dimensions.numLods - 1) - lod)));
+    }
+
     // Create our tree of tiles
     var maxTilesPerAxisLod0 =
         max(dimensions.numTilesXLod0, dimensions.numTilesYLod0);
@@ -60,6 +68,7 @@ class Map {
         Point<int>(0, 0),
         tileImagesBasePath,
         dimensions);
+    _tileGrids[dimensions.numLods - 1].addTile(_rootTile);
     _createTileChildrenRecursive(_rootTile);
   }
 
@@ -146,7 +155,7 @@ class Map {
             _dimensions);
         tile.children.add(newTile);
 
-        //gTileGrids[tile.lod - 1].addTile(newTile);
+        _tileGrids[tile.lod - 1].addTile(newTile);
 
         _createTileChildrenRecursive(newTile);
       }
