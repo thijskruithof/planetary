@@ -9,6 +9,7 @@ import 'mapdimensions.dart';
 import 'tile.dart';
 import 'rect.dart';
 import 'tilegrid.dart';
+import 'panzoominteraction.dart';
 
 class InitShadersException implements Exception {
   String _shadersLog;
@@ -34,6 +35,7 @@ class Map {
   View _view;
   Tile _rootTile;
   List<TileGrid> _tileGrids;
+  PanZoomInteraction _panZoomInteraction;
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
@@ -83,6 +85,9 @@ class Map {
         dimensions);
     _tileGrids[dimensions.numLods - 1].addTile(_rootTile);
     _createTileChildrenRecursive(_rootTile);
+
+    // Initialize our panning and zooming interaction
+    _panZoomInteraction = PanZoomInteraction(canvas, _view);
   }
 
   /// Initialize the map
