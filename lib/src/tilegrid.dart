@@ -37,7 +37,7 @@ class TileGrid {
             .clamp(0, _numTilesPerAxis - 1));
 
     // Gather all tiles that overlap our frustum
-    var visibleTiles = [];
+    var visibleTiles = <Tile>[];
     for (var y = tl.y; y <= br.y; ++y) {
       for (var x = tl.x; x <= br.x; ++x) {
         var t = _tiles[y * _numTilesPerAxis + x];

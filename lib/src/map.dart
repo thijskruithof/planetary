@@ -11,7 +11,14 @@ import 'rect.dart';
 import 'tilegrid.dart';
 
 class InitShadersException implements Exception {
-  InitShadersException(shadersLog);
+  String _shadersLog;
+  InitShadersException(shadersLog) {
+    _shadersLog = shadersLog;
+  }
+  @override
+  String toString() {
+    return _shadersLog;
+  }
 }
 
 Float32List _quadVertices =
@@ -30,6 +37,7 @@ class Map {
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
+  UniformLocation _uniViewProjectionMatrix;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
@@ -124,6 +132,8 @@ class Map {
 
     _uniWorldTopLeft = _gl.getUniformLocation(program, 'uWorldTopLeft');
     _uniWorldBottomRight = _gl.getUniformLocation(program, 'uWorldBottomRight');
+    _uniViewProjectionMatrix =
+        _gl.getUniformLocation(program, 'uViewProjectionMatrix');
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
@@ -148,7 +158,7 @@ class Map {
         continue;
       }
 
-      Rect uvRect = Rect(Vector2.zero(), Vector2(1.0, 1.0));
+      var uvRect = Rect(Vector2.zero(), Vector2(1.0, 1.0));
 
       _drawTileQuad(visibleTile, desiredLod, visibleTile.worldRect, uvRect);
     }
@@ -176,6 +186,8 @@ class Map {
   void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
     _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
     _gl.uniform2f(_uniWorldBottomRight, worldRect.max.x, worldRect.max.y);
+    _gl.uniformMatrix4fv(
+        _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
 
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }

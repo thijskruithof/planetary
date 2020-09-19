@@ -12,7 +12,7 @@ varying vec2 vUV;
 void main() {
   vec2 worldPos = mix(uWorldTopLeft, uWorldBottomRight, aPosition);
   vec4 worldPos4 = vec4(worldPos, 0.0, 1.0);
-  gl_Position = uViewProjectionMatrix * positionVec4; 
+  gl_Position = uViewProjectionMatrix * worldPos4; 
 
   vUV = aPosition;
 }

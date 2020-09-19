@@ -81,6 +81,10 @@ class Camera {
     return _frustum;
   }
 
+  List<double> get viewProjectionMatrix {
+    return _viewProjectionMatrix;
+  }
+
   /// Convert screen-space position [pos] to a 2D world-space position (at Z=0).
   Vector2 unproject(Vector2 pos) {
     // First convert pos (in pixels) to normalized device coords (-1..1)
