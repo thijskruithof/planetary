@@ -151,6 +151,8 @@ class Map {
 
   /// Render the map
   void render() {
+    _panZoomInteraction.update();
+
     _gl.clear(WebGL.COLOR_BUFFER_BIT);
 
     var desiredLod = _calcDesiredLod();
