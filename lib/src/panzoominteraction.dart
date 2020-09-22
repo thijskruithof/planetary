@@ -1,4 +1,3 @@
-import 'package:vector_math/vector_math.dart';
 import 'dart:html';
 import 'dart:math';
 import 'view.dart';
@@ -20,6 +19,7 @@ class PanZoomInteraction {
       : _view = view,
         _isMousePanning = false,
         _isMouseZooming = false {
+    // Mouse handlers
     owner.onMouseDown.listen(_onMouseDown);
     owner.onMouseUp.listen(_onMouseUp);
     owner.onMouseMove.listen(_onMouseMove);
