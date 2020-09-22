@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:vector_math/vector_math.dart';
 import 'view.dart';
 
@@ -12,9 +14,10 @@ class PanZoomInteractionSpot {
   /// View at the moment of the interaction
   final View view;
 
-  PanZoomInteractionSpot(View view, Vector2 screenPos)
-      : screenPos = Vector2.copy(screenPos),
-        worldPos = view.screenToWorldPos(screenPos),
+  PanZoomInteractionSpot(View view, Point<num> eventPos)
+      : screenPos = Vector2(eventPos.x.toDouble(), eventPos.y.toDouble()),
+        worldPos = view.screenToWorldPos(
+            Vector2(eventPos.x.toDouble(), eventPos.y.toDouble())),
         view = View.copy(view);
 
   PanZoomInteractionSpot.copy(PanZoomInteractionSpot other)

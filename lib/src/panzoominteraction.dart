@@ -1,5 +1,6 @@
 import 'package:vector_math/vector_math.dart';
 import 'dart:html';
+import 'dart:math';
 import 'view.dart';
 import 'panzoominteractionspot.dart';
 
@@ -67,8 +68,7 @@ class PanZoomInteraction {
 
   void _onMouseDown(MouseEvent event) {
     if (!_isMousePanning && !_isMouseZooming) {
-      _mousePanInitialPoint = PanZoomInteractionSpot(
-          _view, Vector2(event.client.x.toDouble(), event.client.y.toDouble()));
+      _mousePanInitialPoint = PanZoomInteractionSpot(_view, event.client);
       _mousePanCurrentPoint =
           PanZoomInteractionSpot.copy(_mousePanInitialPoint);
       _isMousePanning = true;
@@ -81,8 +81,7 @@ class PanZoomInteraction {
 
   void _onMouseMove(MouseEvent event) {
     if (_isMousePanning) {
-      _mousePanCurrentPoint = PanZoomInteractionSpot(
-          _view, Vector2(event.client.x.toDouble(), event.client.y.toDouble()));
+      _mousePanCurrentPoint = PanZoomInteractionSpot(_view, event.client);
     }
   }
 
@@ -94,7 +93,7 @@ class PanZoomInteraction {
 
       _mouseZoomCurrentAmount = 1;
       _mouseZoomDesiredAmount = pow(2, -zoom_delta);
-      _mouseZoomInitialPoint = new InteractionPoint(getMousePos());
+      _mouseZoomInitialPoint = PanZoomInteractionSpot(_view, event.client);
 
       _isMouseZooming = true;
     }
