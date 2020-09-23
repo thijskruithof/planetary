@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 import 'view.dart';
 
-/// A spot on the screen where we're interacting with the pan/zoom
+/// A spot on the screen where we're interacting with the pan/zoom,
+/// either with touch or with a mouse.
 class PanZoomInteractionSpot {
   /// Screen position
   final Vector2 screenPos;
