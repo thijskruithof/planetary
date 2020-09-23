@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:web_gl';
 import 'package:planetary/planetary.dart';
 
 import 'rect.dart';
@@ -24,6 +25,7 @@ class Tile {
       Rect worldRect,
       Point<int> cellIndex,
       Point<int> childIndex,
+      RenderingContext gl,
       String tileImagesBasePath,
       MapDimensions mapDimensions)
       : parent = parent,
@@ -35,8 +37,8 @@ class Tile {
         isValid = (worldRect.min.x < mapDimensions.numTilesXLod0) &&
             (worldRect.min.y < mapDimensions.numTilesYLod0),
         isVisible = false,
-        albedoImage =
-            TileImage(tileImagesBasePath, mapDimensions, lod, cellIndex, ''),
-        elevationImage =
-            TileImage(tileImagesBasePath, mapDimensions, lod, cellIndex, '_e');
+        albedoImage = TileImage(
+            gl, tileImagesBasePath, mapDimensions, lod, cellIndex, ''),
+        elevationImage = TileImage(
+            gl, tileImagesBasePath, mapDimensions, lod, cellIndex, '_e');
 }

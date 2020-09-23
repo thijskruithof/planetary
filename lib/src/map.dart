@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
@@ -37,9 +38,12 @@ class Map {
   List<TileGrid> _tileGrids;
   PanZoomInteraction _panZoomInteraction;
 
+  Texture _testTexture;
+
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
   UniformLocation _uniViewProjectionMatrix;
+  UniformLocation _uniSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
@@ -81,6 +85,7 @@ class Map {
                 maxTilesPerAxisLod0.toDouble())),
         Point<int>(0, 0),
         Point<int>(0, 0),
+        _gl,
         tileImagesBasePath,
         dimensions);
     _tileGrids[dimensions.numLods - 1].addTile(_rootTile);
@@ -92,7 +97,7 @@ class Map {
 
   /// Initialize the map
   /// (mandatory to call this before using it)
-  void init() async {
+  Future<void> init() async {
     print('planetary: loading shaders.');
 
     // Compile shaders and link
@@ -139,6 +144,39 @@ class Map {
     _uniWorldBottomRight = _gl.getUniformLocation(program, 'uWorldBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(program, 'uViewProjectionMatrix');
+    _uniSampler = _gl.getUniformLocation(program, 'uSampler');
+
+    // Load a test texture
+    var testTexture = _gl.createTexture();
+    var testElem = ImageElement();
+    var testCompleter = Completer<Texture>();
+    testElem.onLoad.listen((event) {
+      _gl.pixelStorei(WebGL.UNPACK_FLIP_Y_WEBGL, 0);
+      _gl.bindTexture(WebGL.TEXTURE_2D, testTexture);
+      _gl.texImage2D(
+        WebGL.TEXTURE_2D,
+        0,
+        WebGL.RGBA,
+        WebGL.RGBA,
+        WebGL.UNSIGNED_BYTE,
+        testElem,
+      );
+      _gl.texParameteri(
+        WebGL.TEXTURE_2D,
+        WebGL.TEXTURE_MAG_FILTER,
+        WebGL.LINEAR,
+      );
+      _gl.texParameteri(
+        WebGL.TEXTURE_2D,
+        WebGL.TEXTURE_MIN_FILTER,
+        WebGL.LINEAR_MIPMAP_NEAREST,
+      );
+      _gl.generateMipmap(WebGL.TEXTURE_2D);
+      _gl.bindTexture(WebGL.TEXTURE_2D, null);
+      testCompleter.complete(testTexture);
+    });
+    testElem.src = 'tiles/0/0/0.jpg';
+    _testTexture = await testCompleter.future;
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
@@ -196,6 +234,10 @@ class Map {
     _gl.uniformMatrix4fv(
         _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
 
+    _gl.activeTexture(WebGL.TEXTURE0);
+    _gl.bindTexture(WebGL.TEXTURE_2D, _testTexture);
+    _gl.uniform1i(_uniSampler, 0);
+
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -220,6 +262,7 @@ class Map {
             rect,
             Point<int>(tile.cellIndex.x * 2 + x, tile.cellIndex.y * 2 + y),
             Point<int>(x, y),
+            _gl,
             _tileImagesBasePath,
             _dimensions);
         tile.children.add(newTile);
