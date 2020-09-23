@@ -11,6 +11,8 @@ class TileImage {
   final Texture texture;
   final RenderingContext _gl;
 
+  static int numTileImagesLoading = 0;
+
   TileImage(
       RenderingContext gl,
       String tileImagesBasePath,
@@ -27,10 +29,11 @@ class TileImage {
 
   void startLoading() {
     loadingState = ETileImageLoadingState.Loading;
+    numTileImagesLoading++;
 
     var image = ImageElement();
     image.onLoad.listen(_onImageLoaded);
-    image.src = 'tiles/0/0/0.jpg';
+    image.src = filePath;
   }
 
   void _onImageLoaded(event) {
@@ -58,5 +61,6 @@ class TileImage {
     _gl.bindTexture(WebGL.TEXTURE_2D, null);
 
     loadingState = ETileImageLoadingState.Loaded;
+    numTileImagesLoading--;
   }
 }

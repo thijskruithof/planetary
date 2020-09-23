@@ -15,7 +15,7 @@ class Tile {
   final Point<int> cellIndex;
   final Point<int> childIndex;
   final bool isValid;
-  final bool isVisible;
+  bool isVisible;
   final TileImage albedoImage;
   final TileImage elevationImage;
 

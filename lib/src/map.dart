@@ -3,6 +3,7 @@ import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
 import 'dart:math';
+import 'package:planetary/src/tileimage.dart';
 import 'package:vector_math/vector_math.dart';
 
 import 'view.dart';
@@ -193,6 +194,9 @@ class Map {
 
     _gl.clear(WebGL.COLOR_BUFFER_BIT);
 
+    // Mark all tiles as invisible
+    _visitTileChildren(_rootTile, (tile) => {tile.isVisible = false});
+
     var desiredLod = _calcDesiredLod();
 
     var visibleTiles = _tileGrids[desiredLod]
@@ -203,10 +207,16 @@ class Map {
         continue;
       }
 
+      // Mark this tile as being visible, uncluding all its parents
+      _visitTileParents(visibleTile, (tile) => {tile.isVisible = true});
+
       var uvRect = Rect(Vector2.zero(), Vector2(1.0, 1.0));
 
       _drawTileQuad(visibleTile, desiredLod, visibleTile.worldRect, uvRect);
     }
+
+    // Update loading
+    _updateTileLoading(desiredLod);
   }
 
   /// Calculate the lowest LOD level we like to see on screen
@@ -228,6 +238,7 @@ class Map {
     return lodInt;
   }
 
+  /// Draw a single quad tile
   void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
     _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
     _gl.uniform2f(_uniWorldBottomRight, worldRect.max.x, worldRect.max.y);
@@ -271,6 +282,85 @@ class Map {
 
         _createTileChildrenRecursive(newTile);
       }
+    }
+  }
+
+  /// Determine if we can start loading another another tile image
+  bool _canStartLoadingTileImage() {
+    const maxNumSimultaneousImagesBeingLoaded = 6;
+
+    return TileImage.numTileImagesLoading < maxNumSimultaneousImagesBeingLoaded;
+  }
+
+  void _updateTileLoading(int desiredLod) {
+    var tilesToLoad = _getTilesToLoad(desiredLod);
+
+    for (var tile in tilesToLoad) {
+      if (!_canStartLoadingTileImage()) {
+        return;
+      }
+
+      // Do we have to load the albedo?
+      if (tile.albedoImage.loadingState == ETileImageLoadingState.Unloaded) {
+        tile.albedoImage.startLoading();
+      }
+
+      if (!_canStartLoadingTileImage()) {
+        return;
+      }
+
+      // Do we have to load the elevation?
+      if (tile.elevationImage.loadingState == ETileImageLoadingState.Unloaded) {
+        tile.elevationImage.startLoading();
+      }
+    }
+  }
+
+  /// Determine which tiles to load.
+  /// This returns the tiles that are on screen, for lods 4 to desired visible lod.
+  List<Tile> _getTilesToLoad(int desiredLod) {
+    var tilesPerLod = <List<Tile>>[];
+    for (var i = 0; i < _dimensions.numLods; ++i) {
+      tilesPerLod.add(<Tile>[]);
+    }
+
+    // Gather all visible tiles that need to have something loaded
+    _visitTileChildren(
+        _rootTile,
+        (tile) => {
+              if (tile.lod >= desiredLod &&
+                  tile.isVisible &&
+                  (tile.albedoImage.loadingState ==
+                          ETileImageLoadingState.Unloaded ||
+                      tile.elevationImage.loadingState ==
+                          ETileImageLoadingState.Unloaded))
+                {tilesPerLod[tile.lod].add(tile)}
+            });
+
+    // Gather all tiles, LOD N first
+    var result = tilesPerLod[tilesPerLod.length - 1];
+    for (var j = tilesPerLod.length - 2; j >= 0; --j) {
+      result.addAll(tilesPerLod[j]);
+    }
+    return result;
+  }
+
+  void _visitTileChildren(Tile tile, Function(Tile) visitor) {
+    if (tile == null || tile.isValid == false) {
+      return;
+    }
+
+    visitor(tile);
+
+    for (var child in tile.children) {
+      _visitTileChildren(child, visitor);
+    }
+  }
+
+  void _visitTileParents(Tile tile, Function(Tile) visitor) {
+    while (tile != null) {
+      visitor(tile);
+      tile = tile.parent;
     }
   }
 }
