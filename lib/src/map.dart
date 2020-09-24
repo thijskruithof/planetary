@@ -47,7 +47,7 @@ class Map {
   UniformLocation _uniViewProjectionMatrix;
   UniformLocation _uniAlbedo00TopLeft;
   UniformLocation _uniAlbedo00Size;
-  UniformLocation _uniSampler;
+  UniformLocation _uniAlbedoSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
@@ -151,7 +151,7 @@ class Map {
     _uniUVBottomRight = _gl.getUniformLocation(program, 'uUVBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(program, 'uViewProjectionMatrix');
-    _uniSampler = _gl.getUniformLocation(program, 'uSampler');
+    _uniAlbedoSampler = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
     _uniAlbedo00TopLeft = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
     _uniAlbedo00Size = _gl.getUniformLocation(program, 'uAlbedo00Size');
   }
@@ -237,7 +237,7 @@ class Map {
 
     _gl.activeTexture(WebGL.TEXTURE0);
     _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
-    _gl.uniform1i(_uniSampler, 0);
+    _gl.uniform1i(_uniAlbedoSampler, 0);
 
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }
