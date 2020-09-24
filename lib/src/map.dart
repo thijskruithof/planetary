@@ -161,8 +161,20 @@ class Map {
     _uniElevationSampler =
         _gl.getUniformLocation(program, 'uElevation00Sampler');
     _uniElevation00TopLeft =
-        _gl.getUniformLocation(program, 'uElevation0TopLeft');
+        _gl.getUniformLocation(program, 'uElevation00TopLeft');
     _uniElevation00Size = _gl.getUniformLocation(program, 'uElevation00Size');
+
+    assert(_uniWorldTopLeft != null);
+    assert(_uniWorldBottomRight != null);
+    assert(_uniUVTopLeft != null);
+    assert(_uniUVBottomRight != null);
+    assert(_uniViewProjectionMatrix != null);
+    assert(_uniAlbedoSampler != null);
+    assert(_uniAlbedo00TopLeft != null);
+    assert(_uniAlbedo00Size != null);
+    assert(_uniElevationSampler != null);
+    assert(_uniElevation00TopLeft != null);
+    assert(_uniElevation00Size != null);
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
