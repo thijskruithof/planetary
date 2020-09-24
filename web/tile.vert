@@ -1,18 +1,25 @@
 precision highp float;
 
+// Position of corner vertex [0..1],[0..1]
 attribute vec2 aPosition;
 
+// World-space position of quad's corners
 uniform vec2 uWorldTopLeft;
 uniform vec2 uWorldBottomRight;
+
+// UV coords of quad's corners
+uniform vec2 uUVTopLeft;
+uniform vec2 uUVBottomRight;
 
 uniform mat4 uViewProjectionMatrix;
 
 varying vec2 vUV;
+
 
 void main() {
   vec2 worldPos = mix(uWorldTopLeft, uWorldBottomRight, aPosition);
   vec4 worldPos4 = vec4(worldPos, 0.0, 1.0);
   gl_Position = uViewProjectionMatrix * worldPos4; 
 
-  vUV = aPosition;
+  vUV = mix(uUVTopLeft, uUVBottomRight, aPosition);
 }

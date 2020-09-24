@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:planetary/src/tileimage.dart';
 import 'package:vector_math/vector_math.dart';
 
+import 'tileimageregion.dart';
 import 'view.dart';
 import 'mapdimensions.dart';
 import 'tile.dart';
@@ -41,7 +42,11 @@ class Map {
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
+  UniformLocation _uniUVTopLeft;
+  UniformLocation _uniUVBottomRight;
   UniformLocation _uniViewProjectionMatrix;
+  UniformLocation _uniAlbedo00TopLeft;
+  UniformLocation _uniAlbedo00Size;
   UniformLocation _uniSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
@@ -139,11 +144,16 @@ class Map {
     _gl.clearColor(0.0, 0.0, 0.0, 1.0);
     _gl.viewport(0, 0, _screenWidth, _screenHeight);
 
+    // Resolve our uniforms
     _uniWorldTopLeft = _gl.getUniformLocation(program, 'uWorldTopLeft');
     _uniWorldBottomRight = _gl.getUniformLocation(program, 'uWorldBottomRight');
+    _uniUVTopLeft = _gl.getUniformLocation(program, 'uUVTopLeft');
+    _uniUVBottomRight = _gl.getUniformLocation(program, 'uUVBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(program, 'uViewProjectionMatrix');
     _uniSampler = _gl.getUniformLocation(program, 'uSampler');
+    _uniAlbedo00TopLeft = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
+    _uniAlbedo00Size = _gl.getUniformLocation(program, 'uAlbedo00Size');
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
@@ -159,6 +169,9 @@ class Map {
     _panZoomInteraction.update();
 
     _gl.clear(WebGL.COLOR_BUFFER_BIT);
+
+    _gl.uniformMatrix4fv(
+        _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
 
     // Mark all tiles as invisible
     _visitTileChildren(_rootTile, (tile) => {tile.isVisible = false});
@@ -206,16 +219,54 @@ class Map {
 
   /// Draw a single quad tile
   void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
+    // Get our albedo image and its region
+    var albedoImageRegion = _getTileAlbedoImageRegion(tile);
+    if (albedoImageRegion == null) return;
+
+    // Our quad's corner coords
     _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
     _gl.uniform2f(_uniWorldBottomRight, worldRect.max.x, worldRect.max.y);
-    _gl.uniformMatrix4fv(
-        _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
+    _gl.uniform2f(_uniUVTopLeft, uvRect.min.x, uvRect.min.y);
+    _gl.uniform2f(_uniUVBottomRight, uvRect.max.x, uvRect.max.y);
+
+    // Our albedo image's coordinates
+    _gl.uniform2f(_uniAlbedo00TopLeft, albedoImageRegion.region.min.x,
+        albedoImageRegion.region.min.y);
+    _gl.uniform2f(_uniAlbedo00Size, albedoImageRegion.region.size.x,
+        albedoImageRegion.region.size.y);
 
     _gl.activeTexture(WebGL.TEXTURE0);
-    _gl.bindTexture(WebGL.TEXTURE_2D, tile.albedoImage.texture);
+    _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
     _gl.uniform1i(_uniSampler, 0);
 
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
+  }
+
+  /// Get the albedo image and the image's region
+  TileImageRegion _getTileAlbedoImageRegion(Tile tile) {
+    // Start with the full size image rect
+    var imageRect = Rect(Vector2.zero(), Vector2(1, 1));
+
+    // If our tile's image is not loaded find the first parent tile that has its image loaded.
+    while (tile != null &&
+        tile.albedoImage.loadingState != ETileImageLoadingState.Loaded) {
+      // Recalculate our image rect
+      var newImageRectSize = imageRect.size * 0.5;
+      var newImageRectOffset = (imageRect.min * 0.5) +
+          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
+              0.5);
+      imageRect =
+          Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
+
+      tile = tile.parent;
+    }
+
+    if (tile == null ||
+        tile.albedoImage.loadingState != ETileImageLoadingState.Loaded) {
+      return null;
+    }
+
+    return TileImageRegion(tile.albedoImage, imageRect);
   }
 
   Future<String> _downloadTextFile(String url) {
