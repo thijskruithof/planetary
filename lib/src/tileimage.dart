@@ -45,7 +45,7 @@ class TileImage {
       WebGL.RGBA,
       WebGL.RGBA,
       WebGL.UNSIGNED_BYTE,
-      event.eventTarget,
+      event.target,
     );
     _gl.texParameteri(
       WebGL.TEXTURE_2D,
