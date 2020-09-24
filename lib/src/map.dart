@@ -45,9 +45,13 @@ class Map {
   UniformLocation _uniUVTopLeft;
   UniformLocation _uniUVBottomRight;
   UniformLocation _uniViewProjectionMatrix;
+
   UniformLocation _uniAlbedo00TopLeft;
   UniformLocation _uniAlbedo00Size;
   UniformLocation _uniAlbedoSampler;
+  UniformLocation _uniElevation00TopLeft;
+  UniformLocation _uniElevation00Size;
+  UniformLocation _uniElevationSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle)
@@ -154,6 +158,11 @@ class Map {
     _uniAlbedoSampler = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
     _uniAlbedo00TopLeft = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
     _uniAlbedo00Size = _gl.getUniformLocation(program, 'uAlbedo00Size');
+    _uniElevationSampler =
+        _gl.getUniformLocation(program, 'uElevation00Sampler');
+    _uniElevation00TopLeft =
+        _gl.getUniformLocation(program, 'uElevation0TopLeft');
+    _uniElevation00Size = _gl.getUniformLocation(program, 'uElevation00Size');
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
@@ -219,9 +228,11 @@ class Map {
 
   /// Draw a single quad tile
   void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
-    // Get our albedo image and its region
+    // Get our albedo and elevation images and their regions
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
     if (albedoImageRegion == null) return;
+    var elevationImageRegion = _getTileElevationImageRegion(tile);
+    if (elevationImageRegion == null) return;
 
     // Our quad's corner coords
     _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
@@ -235,9 +246,19 @@ class Map {
     _gl.uniform2f(_uniAlbedo00Size, albedoImageRegion.region.size.x,
         albedoImageRegion.region.size.y);
 
+    // Our elevation image's coordinates
+    _gl.uniform2f(_uniElevation00TopLeft, elevationImageRegion.region.min.x,
+        elevationImageRegion.region.min.y);
+    _gl.uniform2f(_uniElevation00Size, elevationImageRegion.region.size.x,
+        elevationImageRegion.region.size.y);
+
+    // Our albedo and elevation textures
     _gl.activeTexture(WebGL.TEXTURE0);
     _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
+    _gl.activeTexture(WebGL.TEXTURE1);
+    _gl.bindTexture(WebGL.TEXTURE_2D, elevationImageRegion.image.texture);
     _gl.uniform1i(_uniAlbedoSampler, 0);
+    _gl.uniform1i(_uniElevationSampler, 1);
 
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }
@@ -267,6 +288,33 @@ class Map {
     }
 
     return TileImageRegion(tile.albedoImage, imageRect);
+  }
+
+  /// Get the elevation image and the image's region
+  TileImageRegion _getTileElevationImageRegion(Tile tile) {
+    // Start with the full size image rect
+    var imageRect = Rect(Vector2.zero(), Vector2(1, 1));
+
+    // If our tile's image is not loaded find the first parent tile that has its image loaded.
+    while (tile != null &&
+        tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
+      // Recalculate our image rect
+      var newImageRectSize = imageRect.size * 0.5;
+      var newImageRectOffset = (imageRect.min * 0.5) +
+          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
+              0.5);
+      imageRect =
+          Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
+
+      tile = tile.parent;
+    }
+
+    if (tile == null ||
+        tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
+      return null;
+    }
+
+    return TileImageRegion(tile.elevationImage, imageRect);
   }
 
   Future<String> _downloadTextFile(String url) {
