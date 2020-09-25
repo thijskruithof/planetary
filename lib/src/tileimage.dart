@@ -32,11 +32,12 @@ class TileImage {
     numTileImagesLoading++;
 
     var image = ImageElement();
-    image.onLoad.listen(_onImageLoaded);
+    image.onLoad.listen(_onLoad);
+    image.onError.listen(_onError);
     image.src = filePath;
   }
 
-  void _onImageLoaded(event) {
+  void _onLoad(event) {
     _gl.pixelStorei(WebGL.UNPACK_FLIP_Y_WEBGL, 0);
     _gl.bindTexture(WebGL.TEXTURE_2D, texture);
     _gl.texImage2D(
@@ -57,10 +58,24 @@ class TileImage {
       WebGL.TEXTURE_MIN_FILTER,
       WebGL.LINEAR_MIPMAP_NEAREST,
     );
+    _gl.texParameteri(
+      WebGL.TEXTURE_2D,
+      WebGL.TEXTURE_WRAP_S,
+      WebGL.CLAMP_TO_EDGE,
+    );
+    _gl.texParameteri(
+      WebGL.TEXTURE_2D,
+      WebGL.TEXTURE_WRAP_T,
+      WebGL.CLAMP_TO_EDGE,
+    );
     _gl.generateMipmap(WebGL.TEXTURE_2D);
     _gl.bindTexture(WebGL.TEXTURE_2D, null);
 
     loadingState = ETileImageLoadingState.Loaded;
     numTileImagesLoading--;
+  }
+
+  void _onError(event) {
+    print('Error loading image from $filePath');
   }
 }
