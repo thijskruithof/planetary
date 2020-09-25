@@ -11,6 +11,7 @@ class Camera {
   Vector3 _up;
   Rect _screenRect;
   List<double> _viewProjectionMatrix;
+  List<double> _viewMatrix;
   Frustum2d _frustum;
 
   Camera(
@@ -59,10 +60,10 @@ class Camera {
         _calcProjectionMatrix(cameraFOVy, cameraNear, cameraFar, aspect);
 
     // Calculate view matrix
-    var viewMatrix = _calcViewMatrix(_pos, _targetPos, _up);
+    _viewMatrix = _calcViewMatrix(_pos, _targetPos, _up);
 
     // Calculate view * proj
-    _viewProjectionMatrix = multiplyMatrix4x4(viewMatrix, projMatrix);
+    _viewProjectionMatrix = multiplyMatrix4x4(_viewMatrix, projMatrix);
 
     // Calculate our 2D frustum
     _frustum = Frustum2d(_viewProjectionMatrix);
@@ -75,6 +76,7 @@ class Camera {
         _up = Vector3.copy(other._up),
         _screenRect = Rect.copy(other._screenRect),
         _viewProjectionMatrix = List<double>.from(other._viewProjectionMatrix),
+        _viewMatrix = List<double>.from(other._viewMatrix),
         _frustum = Frustum2d.copy(other._frustum);
 
   Frustum2d get frustum {
@@ -83,6 +85,10 @@ class Camera {
 
   List<double> get viewProjectionMatrix {
     return _viewProjectionMatrix;
+  }
+
+  List<double> get viewMatrix {
+    return _viewMatrix;
   }
 
   /// Convert screen-space position [pos] to a 2D world-space position (at Z=0).

@@ -39,12 +39,16 @@ class Map {
   Tile _rootTile;
   List<TileGrid> _tileGrids;
   PanZoomInteraction _panZoomInteraction;
+  final double _reliefDepth;
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
   UniformLocation _uniUVTopLeft;
   UniformLocation _uniUVBottomRight;
   UniformLocation _uniViewProjectionMatrix;
+  UniformLocation _uniViewMatrix;
+
+  UniformLocation _uniReliefDepth;
 
   UniformLocation _uniAlbedo00TopLeft;
   UniformLocation _uniAlbedo00Size;
@@ -54,10 +58,11 @@ class Map {
   UniformLocation _uniElevationSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
-      double verticalFOVinDegrees, double pitchAngle)
+      double verticalFOVinDegrees, double pitchAngle, double reliefDepth)
       : _gl = canvas.getContext3d(),
         _dimensions = dimensions,
-        _tileImagesBasePath = tileImagesBasePath {
+        _tileImagesBasePath = tileImagesBasePath,
+        _reliefDepth = reliefDepth {
     assert(_gl != null);
 
     _screenWidth = canvas.width;
@@ -155,6 +160,8 @@ class Map {
     _uniUVBottomRight = _gl.getUniformLocation(program, 'uUVBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(program, 'uViewProjectionMatrix');
+    _uniViewMatrix = _gl.getUniformLocation(program, 'uViewMatrix');
+    _uniReliefDepth = _gl.getUniformLocation(program, 'uReliefDepth');
     _uniAlbedoSampler = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
     _uniAlbedo00TopLeft = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
     _uniAlbedo00Size = _gl.getUniformLocation(program, 'uAlbedo00Size');
@@ -169,6 +176,8 @@ class Map {
     assert(_uniUVTopLeft != null);
     assert(_uniUVBottomRight != null);
     assert(_uniViewProjectionMatrix != null);
+    assert(_uniViewMatrix != null);
+    assert(_uniReliefDepth != null);
     assert(_uniAlbedoSampler != null);
     assert(_uniAlbedo00TopLeft != null);
     assert(_uniAlbedo00Size != null);
@@ -189,18 +198,24 @@ class Map {
   void render() {
     _panZoomInteraction.update();
 
-    _gl.clear(WebGL.COLOR_BUFFER_BIT);
-
-    _gl.uniformMatrix4fv(
-        _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
-
     // Mark all tiles as invisible
     _visitTileChildren(_rootTile, (tile) => {tile.isVisible = false});
 
+    // Determine what is visible
     var desiredLod = _calcDesiredLod();
 
     var visibleTiles = _tileGrids[desiredLod]
         .getTilesAndBorderCellsInFrustum(_view.camera.frustum);
+
+    _gl.clear(WebGL.COLOR_BUFFER_BIT);
+
+    // Bind our camera matrices
+    _gl.uniformMatrix4fv(
+        _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
+    _gl.uniformMatrix4fv(_uniViewMatrix, false, _view.camera.viewMatrix);
+
+    // Set the relief depth
+    _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
 
     for (var visibleTile in visibleTiles) {
       if (!visibleTile.isValid) {

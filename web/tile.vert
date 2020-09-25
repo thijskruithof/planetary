@@ -12,8 +12,13 @@ uniform vec2 uUVTopLeft;
 uniform vec2 uUVBottomRight;
 
 uniform mat4 uViewProjectionMatrix;
+uniform mat4 uViewMatrix;
 
 varying vec2 vUV;
+varying vec3 vPositionView;
+varying vec3 vEyeGroundNormal;
+varying vec3 vEyeGroundTangent;
+varying vec3 vEyeGroundBitangent;
 
 
 void main() {
@@ -22,4 +27,10 @@ void main() {
   gl_Position = uViewProjectionMatrix * worldPos4; 
 
   vUV = mix(uUVTopLeft, uUVBottomRight, aPosition);
+
+  vPositionView = (uViewMatrix * positionVec4).xyz;
+
+  vEyeGroundNormal = (uViewMatrix * vec4(0.0, 0.0, 1.0, 0.0)).xyz;
+  vEyeGroundTangent = (uViewMatrix * vec4(1.0, 0.0, 0.0, 0.0)).xyz;
+  vEyeGroundBitangent = cross(vEyeGroundNormal, vEyeGroundTangent); 
 }
