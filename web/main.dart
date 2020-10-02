@@ -34,7 +34,7 @@ void main() async {
 
   var dimensions = planetary.MapDimensions(512, 64, 32);
 
-  map = planetary.Map(canvas, dimensions, 'tiles', 60.0, 28.0);
+  map = planetary.Map(canvas, dimensions, 'tiles', 60.0, 28.0, 0.5);
 
   await map.init();
 
