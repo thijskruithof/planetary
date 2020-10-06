@@ -18,6 +18,7 @@ class Tile {
   bool isVisible;
   final TileImage albedoImage;
   final TileImage elevationImage;
+  List<Tile> neighbourTiles; // 3x3 neighbour tiles
 
   Tile(
       Tile parent,
@@ -40,5 +41,6 @@ class Tile {
         albedoImage = TileImage(
             gl, tileImagesBasePath, mapDimensions, lod, cellIndex, ''),
         elevationImage = TileImage(
-            gl, tileImagesBasePath, mapDimensions, lod, cellIndex, '_e');
+            gl, tileImagesBasePath, mapDimensions, lod, cellIndex, '_e'),
+        neighbourTiles = List<Tile>(9);
 }

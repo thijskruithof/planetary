@@ -50,12 +50,12 @@ class Map {
 
   UniformLocation _uniReliefDepth;
 
-  UniformLocation _uniAlbedo00TopLeft;
-  UniformLocation _uniAlbedo00Size;
-  UniformLocation _uniAlbedoSampler;
-  UniformLocation _uniElevation00TopLeft;
-  UniformLocation _uniElevation00Size;
-  UniformLocation _uniElevationSampler;
+  List<UniformLocation> _uniAlbedoTopLeft;
+  List<UniformLocation> _uniAlbedoSize;
+  List<UniformLocation> _uniAlbedoSampler;
+  List<UniformLocation> _uniElevationTopLeft;
+  List<UniformLocation> _uniElevationSize;
+  List<UniformLocation> _uniElevationSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
       double verticalFOVinDegrees, double pitchAngle, double reliefDepth)
@@ -103,6 +103,12 @@ class Map {
         dimensions);
     _tileGrids[dimensions.numLods - 1].addTile(_rootTile);
     _createTileChildrenRecursive(_rootTile);
+
+    // Link neighbours
+    print('planetary: linking neighbouring tiles.');
+    for (var tileGrid in _tileGrids) {
+      tileGrid.linkNeighbours();
+    }
 
     // Initialize our panning and zooming interaction
     _panZoomInteraction = PanZoomInteraction(canvas, _view);
@@ -162,14 +168,47 @@ class Map {
         _gl.getUniformLocation(program, 'uViewProjectionMatrix');
     _uniViewMatrix = _gl.getUniformLocation(program, 'uViewMatrix');
     _uniReliefDepth = _gl.getUniformLocation(program, 'uReliefDepth');
-    _uniAlbedoSampler = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
-    _uniAlbedo00TopLeft = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
-    _uniAlbedo00Size = _gl.getUniformLocation(program, 'uAlbedo00Size');
-    _uniElevationSampler =
+
+    _uniAlbedoSampler = List<UniformLocation>(4);
+    _uniAlbedoTopLeft = List<UniformLocation>(4);
+    _uniAlbedoSize = List<UniformLocation>(4);
+    _uniElevationSampler = List<UniformLocation>(4);
+    _uniElevationTopLeft = List<UniformLocation>(4);
+    _uniElevationSize = List<UniformLocation>(4);
+
+    _uniAlbedoSampler[0] = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
+    _uniAlbedoSampler[1] = _gl.getUniformLocation(program, 'uAlbedo01Sampler');
+    _uniAlbedoSampler[2] = _gl.getUniformLocation(program, 'uAlbedo10Sampler');
+    _uniAlbedoSampler[3] = _gl.getUniformLocation(program, 'uAlbedo11Sampler');
+    _uniAlbedoTopLeft[0] = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
+    _uniAlbedoTopLeft[1] = _gl.getUniformLocation(program, 'uAlbedo01TopLeft');
+    _uniAlbedoTopLeft[2] = _gl.getUniformLocation(program, 'uAlbedo10TopLeft');
+    _uniAlbedoTopLeft[3] = _gl.getUniformLocation(program, 'uAlbedo11TopLeft');
+    _uniAlbedoSize[0] = _gl.getUniformLocation(program, 'uAlbedo00Size');
+    _uniAlbedoSize[1] = _gl.getUniformLocation(program, 'uAlbedo01Size');
+    _uniAlbedoSize[2] = _gl.getUniformLocation(program, 'uAlbedo10Size');
+    _uniAlbedoSize[3] = _gl.getUniformLocation(program, 'uAlbedo11Size');
+
+    _uniElevationSampler[0] =
         _gl.getUniformLocation(program, 'uElevation00Sampler');
-    _uniElevation00TopLeft =
+    _uniElevationSampler[1] =
+        _gl.getUniformLocation(program, 'uElevation01Sampler');
+    _uniElevationSampler[2] =
+        _gl.getUniformLocation(program, 'uElevation10Sampler');
+    _uniElevationSampler[3] =
+        _gl.getUniformLocation(program, 'uElevation11Sampler');
+    _uniElevationTopLeft[0] =
         _gl.getUniformLocation(program, 'uElevation00TopLeft');
-    _uniElevation00Size = _gl.getUniformLocation(program, 'uElevation00Size');
+    _uniElevationTopLeft[1] =
+        _gl.getUniformLocation(program, 'uElevation01TopLeft');
+    _uniElevationTopLeft[2] =
+        _gl.getUniformLocation(program, 'uElevation10TopLeft');
+    _uniElevationTopLeft[3] =
+        _gl.getUniformLocation(program, 'uElevation11TopLeft');
+    _uniElevationSize[0] = _gl.getUniformLocation(program, 'uElevation00Size');
+    _uniElevationSize[1] = _gl.getUniformLocation(program, 'uElevation01Size');
+    _uniElevationSize[2] = _gl.getUniformLocation(program, 'uElevation10Size');
+    _uniElevationSize[3] = _gl.getUniformLocation(program, 'uElevation11Size');
 
     assert(_uniWorldTopLeft != null);
     assert(_uniWorldBottomRight != null);
@@ -178,12 +217,15 @@ class Map {
     assert(_uniViewProjectionMatrix != null);
     assert(_uniViewMatrix != null);
     assert(_uniReliefDepth != null);
-    assert(_uniAlbedoSampler != null);
-    assert(_uniAlbedo00TopLeft != null);
-    assert(_uniAlbedo00Size != null);
-    assert(_uniElevationSampler != null);
-    assert(_uniElevation00TopLeft != null);
-    assert(_uniElevation00Size != null);
+
+    for (var i = 0; i < 4; ++i) {
+      assert(_uniAlbedoSampler[i] != null);
+      assert(_uniAlbedoTopLeft[i] != null);
+      assert(_uniAlbedoSize[i] != null);
+      assert(_uniElevationSampler[i] != null);
+      assert(_uniElevationTopLeft[i] != null);
+      assert(_uniElevationSize[i] != null);
+    }
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
@@ -253,13 +295,52 @@ class Map {
     return lodInt;
   }
 
-  /// Draw a single quad tile
-  void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
+  /// Set the shader uniforms of a specific cell, of the 2x2 cells that our tile shader samples from.
+  void _setTileCellUniforms(int cellIndex, Tile tile) {
     // Get our albedo and elevation images and their regions
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
     if (albedoImageRegion == null) return;
     var elevationImageRegion = _getTileElevationImageRegion(tile);
     if (elevationImageRegion == null) return;
+
+    // Our albedo image's coordinates
+    _gl.uniform2f(_uniAlbedoTopLeft[cellIndex], albedoImageRegion.region.min.x,
+        albedoImageRegion.region.min.y);
+    _gl.uniform2f(_uniAlbedoSize[cellIndex], albedoImageRegion.region.size.x,
+        albedoImageRegion.region.size.y);
+
+    // Our elevation image's coordinates
+    _gl.uniform2f(_uniElevationTopLeft[cellIndex],
+        elevationImageRegion.region.min.x, elevationImageRegion.region.min.y);
+    _gl.uniform2f(_uniElevationSize[cellIndex],
+        elevationImageRegion.region.size.x, elevationImageRegion.region.size.y);
+
+    // Our albedo and elevation textures
+    _gl.activeTexture(WebGL.TEXTURE0 + cellIndex * 2);
+    _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
+    _gl.activeTexture(WebGL.TEXTURE1 + cellIndex * 2);
+    _gl.bindTexture(WebGL.TEXTURE_2D, elevationImageRegion.image.texture);
+    _gl.uniform1i(_uniAlbedoSampler[cellIndex], cellIndex * 2);
+    _gl.uniform1i(_uniElevationSampler[cellIndex], 1 + cellIndex * 2);
+  }
+
+  /// Draw a single quad tile
+  void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
+    var isRight = worldRect.min.x >= _view.camera.pos.x;
+    var isTop = worldRect.min.y < _view.camera.pos.y;
+
+    var neighbour1 = isRight ? 5 : 3;
+    var neighbour2 = isTop ? 1 : 7;
+    var neighbour3 = isRight ? (isTop ? 2 : 8) : (isTop ? 0 : 6);
+
+    // Set current cell uniforms (cell 0)
+    _setTileCellUniforms(0, tile);
+    // Set left/right cell uniforms (cell 1)
+    _setTileCellUniforms(1, tile.neighbourTiles[neighbour1]);
+    // Set above/below cell uniforms (cell 2)
+    _setTileCellUniforms(2, tile.neighbourTiles[neighbour2]);
+    // Set diagonal cell uniforms (cell 3)
+    _setTileCellUniforms(3, tile.neighbourTiles[neighbour3]);
 
     // Our quad's corner coords
     _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
@@ -267,26 +348,7 @@ class Map {
     _gl.uniform2f(_uniUVTopLeft, uvRect.min.x, uvRect.min.y);
     _gl.uniform2f(_uniUVBottomRight, uvRect.max.x, uvRect.max.y);
 
-    // Our albedo image's coordinates
-    _gl.uniform2f(_uniAlbedo00TopLeft, albedoImageRegion.region.min.x,
-        albedoImageRegion.region.min.y);
-    _gl.uniform2f(_uniAlbedo00Size, albedoImageRegion.region.size.x,
-        albedoImageRegion.region.size.y);
-
-    // Our elevation image's coordinates
-    _gl.uniform2f(_uniElevation00TopLeft, elevationImageRegion.region.min.x,
-        elevationImageRegion.region.min.y);
-    _gl.uniform2f(_uniElevation00Size, elevationImageRegion.region.size.x,
-        elevationImageRegion.region.size.y);
-
-    // Our albedo and elevation textures
-    _gl.activeTexture(WebGL.TEXTURE0);
-    _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
-    _gl.activeTexture(WebGL.TEXTURE1);
-    _gl.bindTexture(WebGL.TEXTURE_2D, elevationImageRegion.image.texture);
-    _gl.uniform1i(_uniAlbedoSampler, 0);
-    _gl.uniform1i(_uniElevationSampler, 1);
-
+    // Draw a single quad
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }
 

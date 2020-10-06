@@ -16,6 +16,30 @@ class TileGrid {
     _tiles[tile.cellIndex.y * _numTilesPerAxis + tile.cellIndex.x] = tile;
   }
 
+  /// Set references of each tile to their neighbouring tiles.
+  void linkNeighbours() {
+    for (var y = 0; y < _numTilesPerAxis; ++y) {
+      for (var x = 0; x < _numTilesPerAxis; ++x) {
+        var tile = _tiles[y * _numTilesPerAxis + x];
+
+        for (var iy = -1; iy <= 1; ++iy) {
+          var iiy = y + iy;
+          if (iiy < 0 || iiy >= _numTilesPerAxis) continue;
+
+          for (var ix = -1; ix <= 1; ++ix) {
+            var iix = x + ix;
+            if (iix < 0 || iix >= _numTilesPerAxis) continue;
+
+            if (_tiles[iiy * _numTilesPerAxis + iix].isValid) {
+              tile.neighbourTiles[(iy + 1) * 3 + (ix + 1)] =
+                  _tiles[iiy * _numTilesPerAxis + iix];
+            }
+          }
+        }
+      }
+    }
+  }
+
   /// Determine which of the tiles in this tilegrid are overlapping with [frustum]
   List<Tile> getTilesAndBorderCellsInFrustum(Frustum2d frustum) {
     var worldBoundsRect = frustum.worldBoundsRect;
