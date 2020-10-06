@@ -6,82 +6,79 @@ varying vec3 vEyeGroundNormal;
 varying vec3 vEyeGroundTangent;
 varying vec3 vEyeGroundBitangent;
 
+// 2x2 Albedo textures
 uniform sampler2D uAlbedo00Sampler;
-uniform sampler2D uElevation00Sampler;
-
+uniform sampler2D uAlbedo01Sampler;
+uniform sampler2D uAlbedo10Sampler;
+uniform sampler2D uAlbedo11Sampler;
 uniform vec2 uAlbedo00TopLeft;
+uniform vec2 uAlbedo01TopLeft;
+uniform vec2 uAlbedo10TopLeft;
+uniform vec2 uAlbedo11TopLeft;
 uniform vec2 uAlbedo00Size;
+uniform vec2 uAlbedo01Size;
+uniform vec2 uAlbedo10Size;
+uniform vec2 uAlbedo11Size;
+
+// 2x2 Elevation textures
+uniform sampler2D uElevation00Sampler;
+uniform sampler2D uElevation01Sampler;
+uniform sampler2D uElevation10Sampler;
+uniform sampler2D uElevation11Sampler;
 uniform vec2 uElevation00TopLeft;
+uniform vec2 uElevation01TopLeft;
+uniform vec2 uElevation10TopLeft;
+uniform vec2 uElevation11TopLeft;
 uniform vec2 uElevation00Size;
+uniform vec2 uElevation01Size;
+uniform vec2 uElevation10Size;
+uniform vec2 uElevation11Size;
 
 uniform float uReliefDepth;
 
+
+#define SAMPLE_MAP1(sampler, tl, sz, offX, offY) return texture2D(sampler, tl + (uv + vec2(offX,offY))*sz).r
+#define SAMPLE_MAP3(sampler, tl, sz, offX, offY) return texture2D(sampler, tl + (uv + vec2(offX,offY))*sz).xyz
+
+#define SAMPLE_ROW1(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x >= 1.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP1(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
+#define SAMPLE_ROW3(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x >= 1.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP3(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
+
 float sampleElevation3x3(vec2 uv)
 {
-    // // Top?
-    // if (uv.y < 0.0)
-    // {
-    //     if (uv.x < 0.0)
-    //         return texture2D(uElevationTexture11, uElevationTexture11TopLeft + (uv + vec2(1.0,1.0))*uElevationTexture11Size).r;
-    //     else if (uv.x >= 1.0)
-    //         return texture2D(uElevationTexture11, uElevationTexture11TopLeft + (uv + vec2(-1.0,1.0))*uElevationTexture11Size).r;
-    //     else 
-    //         return texture2D(uElevationTexture10, uElevationTexture10TopLeft + (uv + vec2(0.0,1.0))*uElevationTexture10Size).r;
-    // }
-    // // Bottom?
-    // else if (uv.y >= 1.0)
-    // {
-    //     if (uv.x < 0.0)
-    //         return texture2D(uElevationTexture11, uElevationTexture11TopLeft + (uv + vec2(1.0,-1.0))*uElevationTexture11Size).r;
-    //     else if (uv.x >= 1.0)
-    //         return texture2D(uElevationTexture11, uElevationTexture11TopLeft + (uv + vec2(-1.0,-1.0))*uElevationTexture11Size).r;
-    //     else 
-    //         return texture2D(uElevationTexture10, uElevationTexture10TopLeft + (uv + vec2(0.0,-1.0))*uElevationTexture10Size).r;
-    // }    
-    // // Middle?
-    // else
-    {
-        // if (uv.x < 0.0)
-        //     return texture2D(uElevationTexture01, uElevationTexture01TopLeft + (uv + vec2(1.0,0.0))*uElevationTexture01Size).r;
-        // else if (uv.x >= 1.0)
-        //     return texture2D(uElevationTexture01, uElevationTexture01TopLeft + (uv + vec2(-1.0,0.0))*uElevationTexture01Size).r;
-        // else 
-            return texture2D(uElevation00Sampler, uElevation00TopLeft + (uv + vec2(0.0,0.0))*uElevation00Size).r;
+    // Top?
+    if (uv.y < 0.0) 
+    { 
+        SAMPLE_ROW1(uElevation10Sampler, uElevation11Sampler, uElevation10TopLeft, uElevation10Size, uElevation11TopLeft, uElevation11Size, 1.0); 
+    }
+    // Bottom?
+    else if (uv.y >= 1.0) 
+    { 
+        SAMPLE_ROW1(uElevation10Sampler, uElevation11Sampler, uElevation10TopLeft, uElevation10Size, uElevation11TopLeft, uElevation11Size, -1.0); 
+    }
+    // Middle?
+    else 
+    { 
+        SAMPLE_ROW1(uElevation00Sampler, uElevation01Sampler, uElevation00TopLeft, uElevation00Size, uElevation01TopLeft, uElevation01Size, 0.0); 
     }
 }
 
 
 vec3 sampleAlbedo3x3(vec2 uv)
 {
-    // // Top?
-    // if (uv.y < 0.0)
-    // {
-    //     if (uv.x < 0.0)
-    //         return texture2D(uAlbedoTexture11, uAlbedoTexture11TopLeft + (uv + vec2(1.0,1.0))*uAlbedoTexture11Size).xyz;            
-    //     else if (uv.x >= 1.0)
-    //         return texture2D(uAlbedoTexture11, uAlbedoTexture11TopLeft + (uv + vec2(-1.0,1.0))*uAlbedoTexture11Size).xyz;
-    //     else 
-    //         return texture2D(uAlbedoTexture10, uAlbedoTexture10TopLeft + (uv + vec2(0.0,1.0))*uAlbedoTexture10Size).xyz;
-    // }
-    // // Bottom?
-    // else if (uv.y >= 1.0)
-    // {
-    //     if (uv.x < 0.0)
-    //         return texture2D(uAlbedoTexture11, uAlbedoTexture11TopLeft + (uv + vec2(1.0,-1.0))*uAlbedoTexture11Size).xyz;            
-    //     else if (uv.x >= 1.0)
-    //         return texture2D(uAlbedoTexture11, uAlbedoTexture11TopLeft + (uv + vec2(-1.0,-1.0))*uAlbedoTexture11Size).xyz;
-    //     else 
-    //         return texture2D(uAlbedoTexture10, uAlbedoTexture10TopLeft + (uv + vec2(0.0,-1.0))*uAlbedoTexture10Size).xyz;        
-    // }    
-    // // Middle?
-    // else
-    {
-        // if (uv.x < 0.0)
-        //     return texture2D(uAlbedoTexture01, uAlbedoTexture01TopLeft + (uv + vec2(1.0,0.0))*uAlbedoTexture01Size).xyz;            
-        // else if (uv.x >= 1.0)
-        //     return texture2D(uAlbedoTexture01, uAlbedoTexture01TopLeft + (uv + vec2(-1.0,0.0))*uAlbedoTexture01Size).xyz;
-        // else 
-            return texture2D(uAlbedo00Sampler, uAlbedo00TopLeft + (uv + vec2(0.0,0.0))*uAlbedo00Size).xyz;        
+    // Top?
+    if (uv.y < 0.0) 
+    { 
+        SAMPLE_ROW3(uAlbedo10Sampler, uAlbedo11Sampler, uAlbedo10TopLeft, uAlbedo10Size, uAlbedo11TopLeft, uAlbedo11Size, 1.0); 
+    }
+    // Bottom?
+    else if (uv.y >= 1.0) 
+    { 
+        SAMPLE_ROW3(uAlbedo10Sampler, uAlbedo11Sampler, uAlbedo10TopLeft, uAlbedo10Size, uAlbedo11TopLeft, uAlbedo11Size, -1.0); 
+    }
+    // Middle?
+    else 
+    { 
+        SAMPLE_ROW3(uAlbedo00Sampler, uAlbedo01Sampler, uAlbedo00TopLeft, uAlbedo00Size, uAlbedo01TopLeft, uAlbedo01Size, 0.0); 
     }
 }
 
