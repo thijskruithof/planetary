@@ -28,7 +28,7 @@ void main() {
 
   vUV = mix(uUVTopLeft, uUVBottomRight, aPosition);
 
-  vPositionView = (uViewMatrix * positionVec4).xyz;
+  vPositionView = (uViewMatrix * worldPos4).xyz;
 
   vEyeGroundNormal = (uViewMatrix * vec4(0.0, 0.0, 1.0, 0.0)).xyz;
   vEyeGroundTangent = (uViewMatrix * vec4(1.0, 0.0, 0.0, 0.0)).xyz;

@@ -46,7 +46,7 @@ float sampleElevation3x3(vec2 uv)
         // else if (uv.x >= 1.0)
         //     return texture2D(uElevationTexture01, uElevationTexture01TopLeft + (uv + vec2(-1.0,0.0))*uElevationTexture01Size).r;
         // else 
-            return texture2D(uElevationTexture00, uElevationTexture00TopLeft + (uv + vec2(0.0,0.0))*uElevationTexture00Size).r;
+            return texture2D(uElevation00Sampler, uElevation00TopLeft + (uv + vec2(0.0,0.0))*uElevation00Size).r;
     }
 }
 
@@ -81,7 +81,7 @@ vec3 sampleAlbedo3x3(vec2 uv)
         // else if (uv.x >= 1.0)
         //     return texture2D(uAlbedoTexture01, uAlbedoTexture01TopLeft + (uv + vec2(-1.0,0.0))*uAlbedoTexture01Size).xyz;
         // else 
-            return texture2D(uAlbedoTexture00, uAlbedoTexture00TopLeft + (uv + vec2(0.0,0.0))*uAlbedoTexture00Size).xyz;        
+            return texture2D(uAlbedo00Sampler, uAlbedo00TopLeft + (uv + vec2(0.0,0.0))*uAlbedo00Size).xyz;        
     }
 }
 
