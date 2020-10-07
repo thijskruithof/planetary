@@ -3,9 +3,9 @@ import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
 import 'dart:math';
-import 'package:planetary/src/tileimage.dart';
 import 'package:vector_math/vector_math.dart';
 
+import 'tileimage.dart';
 import 'tileimageregion.dart';
 import 'view.dart';
 import 'mapdimensions.dart';
@@ -13,6 +13,7 @@ import 'tile.dart';
 import 'rect.dart';
 import 'tilegrid.dart';
 import 'panzoominteraction.dart';
+import 'screenquad.dart';
 
 class InitShadersException implements Exception {
   String _shadersLog;
@@ -267,9 +268,21 @@ class Map {
       // Mark this tile as being visible, uncluding all its parents
       _visitTileParents(visibleTile, (tile) => {tile.isVisible = true});
 
-      var uvRect = Rect(Vector2.zero(), Vector2(1.0, 1.0));
+      // Construct the quad that's used by this tile
+      var quad = ScreenQuad(
+          visibleTile.worldRect, Rect(Vector2.zero(), Vector2(1.0, 1.0)));
 
-      _drawTileQuad(visibleTile, desiredLod, visibleTile.worldRect, uvRect);
+      // Split up the quad at the camera's X and Y. These are the lines where the
+      // parallax perspective direction changes. We have to render using split
+      // quads as a single quad never samples a tile's neighbours on BOTH directions.
+      var quads = <ScreenQuad>[quad];
+      quads = ScreenQuad.splitAtWorldX(quads, _view.camera.pos.x);
+      quads = ScreenQuad.splitAtWorldY(quads, _view.camera.pos.y);
+
+      // Draw all of the tile's quads
+      for (var quad in quads) {
+        _drawTileQuad(visibleTile, quad);
+      }
     }
 
     // Update loading
@@ -325,9 +338,9 @@ class Map {
   }
 
   /// Draw a single quad tile
-  void _drawTileQuad(Tile tile, int desiredLod, Rect worldRect, Rect uvRect) {
-    var isRight = worldRect.min.x >= _view.camera.pos.x;
-    var isTop = worldRect.min.y < _view.camera.pos.y;
+  void _drawTileQuad(Tile tile, ScreenQuad quad) {
+    var isRight = quad.worldRect.min.x >= _view.camera.pos.x;
+    var isTop = quad.worldRect.min.y < _view.camera.pos.y;
 
     var neighbour1 = isRight ? 5 : 3;
     var neighbour2 = isTop ? 1 : 7;
@@ -343,10 +356,11 @@ class Map {
     _setTileCellUniforms(3, tile.neighbourTiles[neighbour3]);
 
     // Our quad's corner coords
-    _gl.uniform2f(_uniWorldTopLeft, worldRect.min.x, worldRect.min.y);
-    _gl.uniform2f(_uniWorldBottomRight, worldRect.max.x, worldRect.max.y);
-    _gl.uniform2f(_uniUVTopLeft, uvRect.min.x, uvRect.min.y);
-    _gl.uniform2f(_uniUVBottomRight, uvRect.max.x, uvRect.max.y);
+    _gl.uniform2f(_uniWorldTopLeft, quad.worldRect.min.x, quad.worldRect.min.y);
+    _gl.uniform2f(
+        _uniWorldBottomRight, quad.worldRect.max.x, quad.worldRect.max.y);
+    _gl.uniform2f(_uniUVTopLeft, quad.uvRect.min.x, quad.uvRect.min.y);
+    _gl.uniform2f(_uniUVBottomRight, quad.uvRect.max.x, quad.uvRect.max.y);
 
     // Draw a single quad
     _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
