@@ -11,6 +11,9 @@ class Rect {
   Rect.copy(Rect other)
       : min = Vector2.copy(other.min),
         max = Vector2.copy(other.max);
+  Rect.unit()
+      : min = Vector2(0, 0),
+        max = Vector2(1, 1);
 
   Vector2 get center {
     return (min + max) * 0.5;

@@ -42,6 +42,9 @@ class Map {
   PanZoomInteraction _panZoomInteraction;
   final double _reliefDepth;
 
+  TileImageRegion _nullTileAlbedoImageRegion;
+  TileImageRegion _nullTileElevationImageRegion;
+
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
   UniformLocation _uniUVTopLeft;
@@ -118,6 +121,18 @@ class Map {
   /// Initialize the map
   /// (mandatory to call this before using it)
   Future<void> init() async {
+    // Set up our null tile images
+    print('planetary: loading nulltile.');
+
+    var nullTileAlbedoImage = TileImage.fromFilePath(_gl, 'nulltile.jpg');
+    var nullTileElevationImage = TileImage.fromFilePath(_gl, 'nulltile_e.jpg');
+    _nullTileAlbedoImageRegion =
+        TileImageRegion(nullTileAlbedoImage, Rect.unit());
+    _nullTileElevationImageRegion =
+        TileImageRegion(nullTileElevationImage, Rect.unit());
+    nullTileAlbedoImage.startLoading();
+    nullTileElevationImage.startLoading();
+
     print('planetary: loading shaders.');
 
     // Compile shaders and link
@@ -312,9 +327,14 @@ class Map {
   void _setTileCellUniforms(int cellIndex, Tile tile) {
     // Get our albedo and elevation images and their regions
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
-    if (albedoImageRegion == null) return;
+    if (albedoImageRegion.image.loadingState != ETileImageLoadingState.Loaded) {
+      return;
+    }
     var elevationImageRegion = _getTileElevationImageRegion(tile);
-    if (elevationImageRegion == null) return;
+    if (elevationImageRegion.image.loadingState !=
+        ETileImageLoadingState.Loaded) {
+      return;
+    }
 
     // Our albedo image's coordinates
     _gl.uniform2f(_uniAlbedoTopLeft[cellIndex], albedoImageRegion.region.min.x,
@@ -385,9 +405,10 @@ class Map {
       tile = tile.parent;
     }
 
+    // If we don't have any image loaded for this tile, simply show the null tile.
     if (tile == null ||
         tile.albedoImage.loadingState != ETileImageLoadingState.Loaded) {
-      return null;
+      return _nullTileAlbedoImageRegion;
     }
 
     return TileImageRegion(tile.albedoImage, imageRect);
@@ -412,9 +433,10 @@ class Map {
       tile = tile.parent;
     }
 
+    // If we don't have any image loaded for this tile, simply show the null tile.
     if (tile == null ||
         tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
-      return null;
+      return _nullTileElevationImageRegion;
     }
 
     return TileImageRegion(tile.elevationImage, imageRect);

@@ -27,6 +27,12 @@ class TileImage {
         loadingState = ETileImageLoadingState.Unloaded,
         texture = gl.createTexture();
 
+  TileImage.fromFilePath(RenderingContext gl, String filePath)
+      : _gl = gl,
+        filePath = filePath,
+        loadingState = ETileImageLoadingState.Unloaded,
+        texture = gl.createTexture();
+
   void startLoading() {
     loadingState = ETileImageLoadingState.Loading;
     numTileImagesLoading++;
