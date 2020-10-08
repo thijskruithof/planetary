@@ -262,8 +262,11 @@ class Map {
     // Determine what is visible
     var desiredLod = _calcDesiredLod();
 
-    var visibleTiles = _tileGrids[desiredLod]
-        .getTilesAndBorderCellsInFrustum(_view.camera.frustum);
+    var visibleTiles = <Tile>[];
+    var borderCells = <Rect>[];
+
+    _tileGrids[desiredLod].getTilesAndBorderCellsInFrustum(
+        _view.camera.frustum, visibleTiles, borderCells);
 
     _gl.clear(WebGL.COLOR_BUFFER_BIT);
 
@@ -275,6 +278,7 @@ class Map {
     // Set the relief depth
     _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
 
+    // Draw all visible tiles
     for (var visibleTile in visibleTiles) {
       if (!visibleTile.isValid) {
         continue;
@@ -298,6 +302,11 @@ class Map {
       for (var quad in quads) {
         _drawTileQuad(visibleTile, quad);
       }
+    }
+
+    // Draw all border cells
+    for (var borderCell in borderCells) {
+      _drawBorderCellQuad(borderCell);
     }
 
     // Update loading
@@ -440,6 +449,27 @@ class Map {
     }
 
     return TileImageRegion(tile.elevationImage, imageRect);
+  }
+
+  /// Draw a single quad of a border cell
+  void _drawBorderCellQuad(Rect rect) {
+    // Set current cell uniforms (cell 0)
+    _setTileCellUniforms(0, null);
+    // Set left/right cell uniforms (cell 1)
+    _setTileCellUniforms(1, null);
+    // Set above/below cell uniforms (cell 2)
+    _setTileCellUniforms(2, null);
+    // Set diagonal cell uniforms (cell 3)
+    _setTileCellUniforms(3, null);
+
+    // Our quad's corner coords
+    _gl.uniform2f(_uniWorldTopLeft, rect.min.x, rect.min.y);
+    _gl.uniform2f(_uniWorldBottomRight, rect.max.x, rect.max.y);
+    _gl.uniform2f(_uniUVTopLeft, 0, 0);
+    _gl.uniform2f(_uniUVBottomRight, 1, 1);
+
+    // Draw a single quad
+    _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
   }
 
   Future<String> _downloadTextFile(String url) {
