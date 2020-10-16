@@ -67,20 +67,19 @@ class TileGrid {
     var worldBoundsRect = frustum.worldBoundsRect;
 
     var tileSize = pow(2, _lod);
-    var tl = Point<int>(
-        (worldBoundsRect.min.x / tileSize)
-            .floor()
-            .clamp(0, _numTilesPerAxis - 1),
-        (worldBoundsRect.min.y / tileSize)
-            .floor()
-            .clamp(0, _numTilesPerAxis - 1));
-    var br = Point<int>(
-        (worldBoundsRect.max.x / tileSize)
-            .floor()
-            .clamp(0, _numTilesPerAxis - 1),
-        (worldBoundsRect.max.y / tileSize)
-            .floor()
-            .clamp(0, _numTilesPerAxis - 1));
+    var tl = Point<int>((worldBoundsRect.min.x / tileSize).floor(),
+        (worldBoundsRect.min.y / tileSize).floor());
+    var br = Point<int>((worldBoundsRect.max.x / tileSize).floor(),
+        (worldBoundsRect.max.y / tileSize).floor());
+
+    var numBorderCellsLeft = (tl.x < 0) ? (-tl.x) : 0;
+    var numBorderCellsRight =
+        (br.x >= _numTilesPerAxis) ? (br.x - (_numTilesPerAxis - 1)) : 0;
+
+    tl = Point<int>(tl.x.clamp(0, _numTilesPerAxis - 1),
+        tl.y.clamp(0, _numTilesPerAxis - 1));
+    br = Point<int>(br.x.clamp(0, _numTilesPerAxis - 1),
+        br.y.clamp(0, _numTilesPerAxis - 1));
 
     // Gather all tiles that overlap our frustum
     for (var y = tl.y; y <= br.y; ++y) {
@@ -92,10 +91,6 @@ class TileGrid {
         }
       }
     }
-
-    var numBorderCellsLeft = (tl.x < 0) ? (-tl.x) : 0;
-    var numBorderCellsRight =
-        (br.x >= _numTilesPerAxis) ? (br.x - (_numTilesPerAxis - 1)) : 0;
 
     // Gather all border cells that overlap our frustum, on the left and right
     for (var x = 0; x < numBorderCellsLeft; ++x) {
