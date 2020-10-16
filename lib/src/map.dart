@@ -115,7 +115,7 @@ class Map {
     }
 
     // Initialize our panning and zooming interaction
-    _panZoomInteraction = PanZoomInteraction(canvas, _view);
+    _panZoomInteraction = PanZoomInteraction(_view);
   }
 
   /// Initialize the map

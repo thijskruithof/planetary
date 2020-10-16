@@ -32,22 +32,23 @@ class PanZoomInteraction {
   PanZoomInteractionTouchInfo _touchZoomTouchInfoA;
   PanZoomInteractionTouchInfo _touchZoomTouchInfoB;
 
-  PanZoomInteraction(Element owner, View view)
+  PanZoomInteraction(View view)
       : _view = view,
         _isMousePanning = false,
         _isMouseZooming = false,
         _isTouchPanning = false,
-        _isTouchZooming = false {
+        _isTouchZooming = false,
+        _touchInfos = <int, PanZoomInteractionTouchInfo>{} {
     // Mouse handlers
-    owner.onMouseDown.listen(_onMouseDown);
-    owner.onMouseUp.listen(_onMouseUp);
-    owner.onMouseMove.listen(_onMouseMove);
-    owner.onMouseWheel.listen(_onMouseWheel);
+    document.onMouseDown.listen(_onMouseDown);
+    document.onMouseUp.listen(_onMouseUp);
+    document.onMouseMove.listen(_onMouseMove);
+    document.onMouseWheel.listen(_onMouseWheel);
 
     // Touch handlers
-    owner.onTouchStart.listen(_onTouchStart);
-    owner.onTouchEnd.listen(_onTouchEnd);
-    owner.onTouchMove.listen(_onTouchMove);
+    document.onTouchStart.listen(_onTouchStart);
+    document.onTouchEnd.listen(_onTouchEnd);
+    document.onTouchMove.listen(_onTouchMove);
   }
 
   void update() {
