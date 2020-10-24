@@ -40,7 +40,7 @@ class Map {
   Tile _rootTile;
   List<TileGrid> _tileGrids;
   PanZoomInteraction _panZoomInteraction;
-  final double _reliefDepth;
+  double _reliefDepth;
 
   TileImageRegion _nullTileAlbedoImageRegion;
   TileImageRegion _nullTileElevationImageRegion;
@@ -242,6 +242,14 @@ class Map {
       assert(_uniElevationTopLeft[i] != null);
       assert(_uniElevationSize[i] != null);
     }
+  }
+
+  double get reliefDepth {
+    return _reliefDepth;
+  }
+
+  set reliefDepth(double value) {
+    _reliefDepth = value;
   }
 
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels

@@ -29,6 +29,10 @@ void render(num deltaTime) {
   window.animationFrame.then(render);
 }
 
+void onSettingsChanged(double reliefDepth) {
+  map.reliefDepth = reliefDepth;
+}
+
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
 
 void main() async {
@@ -44,6 +48,8 @@ void main() async {
   print('planetary: initialized.');
 
   unawaited(window.animationFrame.then(render));
+
+  ng.AppComponent.onAppSettingsChanged = onSettingsChanged;
 
   runApp(ng.AppComponentNgFactory);
 }

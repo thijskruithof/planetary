@@ -1,0 +1,22 @@
+<div id="maindiv">
+    <material-fab raised id="main" (trigger)="onClick()">
+        <material-icon icon="settings"></material-icon>
+    </material-fab>
+</div>
+
+<modal [(visible)]="settingsDialogVisible">
+    <material-dialog info id="settingsdialog">
+  
+      <div header>  
+        <material-button icon autoFocus (trigger)="settingsDialogVisible = false">
+            <material-icon icon="close"></material-icon>
+          </material-button>
+
+        <h1>Settings</h1>
+      </div>
+
+      
+        <p>Relief depth</p>
+        <material-slider [(value)]="reliefDepth" [min]="0" [max]="100"></material-slider>  
+    </material-dialog>
+  </modal>
