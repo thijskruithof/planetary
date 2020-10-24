@@ -23,6 +23,7 @@ class AppComponent {
 
   bool settingsDialogVisible = false;
   int _reliefDepth = 50;
+  int _pitchAngle = 28;
 
   int get reliefDepth {
     return _reliefDepth;
@@ -30,6 +31,15 @@ class AppComponent {
 
   set reliefDepth(int v) {
     _reliefDepth = v;
+    _onSettingsChanged();
+  }
+
+  int get pitchAngle {
+    return _pitchAngle;
+  }
+
+  set pitchAngle(int v) {
+    _pitchAngle = v;
     _onSettingsChanged();
   }
 
