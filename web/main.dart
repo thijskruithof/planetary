@@ -1,6 +1,9 @@
 import 'dart:html';
+import 'package:angular/angular.dart';
 import 'package:pedantic/pedantic.dart';
 import 'package:planetary/planetary.dart' as planetary;
+
+import 'package:planetary/app_component.template.dart' as ng;
 
 CanvasElement canvas = document.getElementById('planetaryCanvas');
 planetary.Map map;
@@ -41,4 +44,6 @@ void main() async {
   print('planetary: initialized.');
 
   unawaited(window.animationFrame.then(render));
+
+  runApp(ng.AppComponentNgFactory);
 }
