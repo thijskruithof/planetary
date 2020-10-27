@@ -1,4 +1,5 @@
 import 'dart:html';
+import 'dart:math';
 import 'package:angular/angular.dart';
 import 'package:pedantic/pedantic.dart';
 import 'package:planetary/planetary.dart' as planetary;
@@ -29,8 +30,9 @@ void render(num deltaTime) {
   window.animationFrame.then(render);
 }
 
-void onSettingsChanged(double reliefDepth) {
+void onSettingsChanged(double reliefDepth, double pitchAngle) {
   map.reliefDepth = reliefDepth;
+  map.pitchAngle = pitchAngle;
 }
 
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
@@ -41,7 +43,8 @@ void main() async {
 
   var dimensions = planetary.MapDimensions(512, 64, 32);
 
-  map = planetary.Map(canvas, dimensions, 'tiles', 60.0, 28.0, 0.5);
+  map =
+      planetary.Map(canvas, dimensions, 'tiles', 60.0, 28.0 * pi / 180.0, 0.5);
 
   await map.init();
 

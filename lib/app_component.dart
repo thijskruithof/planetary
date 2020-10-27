@@ -5,6 +5,7 @@ import 'package:angular_components/material_button/material_button.dart';
 import 'package:angular_components/material_icon/material_icon.dart';
 import 'package:angular_components/material_dialog/material_dialog.dart';
 import 'package:angular_components/material_slider/material_slider.dart';
+import 'dart:math';
 
 @Component(selector: 'app', templateUrl: 'app_component.html', styleUrls: [
   'app_component.css'
@@ -45,7 +46,7 @@ class AppComponent {
 
   void _onSettingsChanged() {
     if (onAppSettingsChanged != null) {
-      onAppSettingsChanged(_reliefDepth / 100.0);
+      onAppSettingsChanged(_reliefDepth / 100.0, _pitchAngle * (pi / 180.0));
     }
   }
 

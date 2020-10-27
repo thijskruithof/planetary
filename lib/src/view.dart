@@ -9,7 +9,7 @@ class View {
   final MapDimensions _mapDimensions;
 
   /// Camera pitch angle (in radians)
-  final double cameraPitchAngle;
+  double _cameraPitchAngle;
 
   /// Camera FOV (vertically, in radians)
   final double cameraFOVy;
@@ -33,10 +33,10 @@ class View {
   Camera _camera;
 
   View(MapDimensions mapDimensions, Rect screenRect,
-      double verticalCameraFOVinDegrees, double cameraPitchAngleInDegrees)
+      double verticalCameraFOVinDegrees, double cameraPitchAngle)
       : _mapDimensions = mapDimensions,
         cameraFOVy = verticalCameraFOVinDegrees * (pi / 180.0),
-        cameraPitchAngle = cameraPitchAngleInDegrees * (pi / 180.0) {
+        _cameraPitchAngle = cameraPitchAngle {
     _screenRect = Rect.copy(screenRect);
 
     _worldBottomCenter = Vector2.zero();
@@ -48,7 +48,7 @@ class View {
   /// Make a copy of View [other]
   View.copy(View other)
       : _mapDimensions = other._mapDimensions,
-        cameraPitchAngle = other.cameraPitchAngle,
+        _cameraPitchAngle = other._cameraPitchAngle,
         cameraFOVy = other.cameraFOVy,
         _screenRect = Rect.copy(other._screenRect),
         _worldScale = other._worldScale,
@@ -91,6 +91,17 @@ class View {
   /// Aspect ratio of the screen
   double get screenAspect {
     return _screenRect.size.x / _screenRect.size.y;
+  }
+
+  double get cameraPitchAngle {
+    return _cameraPitchAngle;
+  }
+
+  set cameraPitchAngle(double angle) {
+    if (angle != _cameraPitchAngle) {
+      _cameraPitchAngle = angle;
+      _recalculate();
+    }
   }
 
   Camera get camera {

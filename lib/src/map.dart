@@ -252,6 +252,14 @@ class Map {
     _reliefDepth = value;
   }
 
+  double get pitchAngle {
+    return _view.cameraPitchAngle;
+  }
+
+  set pitchAngle(double value) {
+    _view.cameraPitchAngle = value;
+  }
+
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
   void resize(num screenWidth, num screenHeight) {
     _screenWidth = screenWidth;
