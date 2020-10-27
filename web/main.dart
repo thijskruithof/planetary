@@ -39,6 +39,10 @@ void setMapSettings(double reliefDepth, double pitchAngle) {
   map.pitchAngle = pitchAngle * (pi / 180.0);
 }
 
+void onAppSettingsDialogVisibilityChanged(bool isVisible) {
+  map.panZoomInteraction.enabled = !isVisible;
+}
+
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
 
 void main() async {
@@ -58,6 +62,8 @@ void main() async {
   unawaited(window.animationFrame.then(render));
 
   ng.AppComponent.onAppSettingsChanged = onAppSettingsChanged;
+  ng.AppComponent.onAppSettingsDialogVisibilityChanged =
+      onAppSettingsDialogVisibilityChanged;
 
   runApp(ng.AppComponentNgFactory);
 }

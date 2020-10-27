@@ -9,6 +9,8 @@ import 'panzoominteractiontouchinfo.dart';
 class PanZoomInteraction {
   final View _view;
 
+  bool _enabled;
+
   // Mouse-based panning
   bool _isMousePanning;
   PanZoomInteractionSpot _mousePanInitialPoint;
@@ -34,6 +36,7 @@ class PanZoomInteraction {
 
   PanZoomInteraction(View view)
       : _view = view,
+        _enabled = true,
         _isMousePanning = false,
         _isMouseZooming = false,
         _isTouchPanning = false,
@@ -49,6 +52,23 @@ class PanZoomInteraction {
     document.onTouchStart.listen(_onTouchStart);
     document.onTouchEnd.listen(_onTouchEnd);
     document.onTouchMove.listen(_onTouchMove);
+  }
+
+  bool get enabled {
+    return _enabled;
+  }
+
+  set enabled(bool value) {
+    if (value != _enabled) {
+      _enabled = value;
+
+      // Flush all input!
+      _isMousePanning = false;
+      _isMouseZooming = false;
+      _isTouchPanning = false;
+      _isTouchZooming = false;
+      _touchInfos = <int, PanZoomInteractionTouchInfo>{};
+    }
   }
 
   void update() {
@@ -126,7 +146,7 @@ class PanZoomInteraction {
   }
 
   void _onMouseDown(MouseEvent event) {
-    if (!_isMousePanning && !_isMouseZooming) {
+    if (_enabled && !_isMousePanning && !_isMouseZooming) {
       _mousePanInitialPoint = PanZoomInteractionSpot(_view, event.client);
       _mousePanCurrentPoint =
           PanZoomInteractionSpot.copy(_mousePanInitialPoint);
@@ -139,13 +159,13 @@ class PanZoomInteraction {
   }
 
   void _onMouseMove(MouseEvent event) {
-    if (_isMousePanning) {
+    if (_enabled && _isMousePanning) {
       _mousePanCurrentPoint = PanZoomInteractionSpot(_view, event.client);
     }
   }
 
   void _onMouseWheel(WheelEvent event) {
-    if (!_isMousePanning && !_isMouseZooming) {
+    if (_enabled && !_isMousePanning && !_isMouseZooming) {
       var maxZoomAmount = 0.75;
       var zoom_delta =
           max(-maxZoomAmount, min(maxZoomAmount, -event.deltaY / 200.0));
@@ -159,6 +179,8 @@ class PanZoomInteraction {
   }
 
   void _onTouchStart(TouchEvent event) {
+    if (!_enabled) return;
+
     // Add all new touches to the touchInfos
     for (var touch in event.touches) {
       if (_touchInfos.containsKey(touch.identifier)) {
@@ -186,6 +208,8 @@ class PanZoomInteraction {
   }
 
   void _onTouchEnd(TouchEvent event) {
+    if (!_enabled) return;
+
     var newTouchInfos = <int, PanZoomInteractionTouchInfo>{};
 
     // Copy over the start infos for only the still active touches
@@ -214,6 +238,8 @@ class PanZoomInteraction {
   }
 
   void _onTouchMove(TouchEvent event) {
+    if (!_enabled) return;
+
     for (var touch in event.touches) {
       _touchInfos[touch.identifier].currentSpot =
           PanZoomInteractionSpot(_view, touch.client);

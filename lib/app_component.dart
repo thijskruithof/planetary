@@ -21,12 +21,27 @@ import 'dart:math';
 ])
 class AppComponent {
   static var onAppSettingsChanged;
+  static var onAppSettingsDialogVisibilityChanged;
+
   static double defaultReliefDepth = 50;
   static double defaultPitchAngle = 28;
 
-  bool settingsDialogVisible = false;
+  bool _settingsDialogVisible = false;
   double _reliefDepth = defaultReliefDepth;
   double _pitchAngle = defaultPitchAngle;
+
+  bool get settingsDialogVisible {
+    return _settingsDialogVisible;
+  }
+
+  set settingsDialogVisible(bool value) {
+    if (value != _settingsDialogVisible) {
+      _settingsDialogVisible = value;
+      if (onAppSettingsDialogVisibilityChanged != null) {
+        onAppSettingsDialogVisibilityChanged(value);
+      }
+    }
+  }
 
   double get reliefDepth {
     return _reliefDepth;
