@@ -40,7 +40,7 @@ class Map {
   Tile _rootTile;
   List<TileGrid> _tileGrids;
   PanZoomInteraction _panZoomInteraction;
-  double _reliefDepth;
+  double _reliefDepth = 0.5;
 
   TileImageRegion _nullTileAlbedoImageRegion;
   TileImageRegion _nullTileElevationImageRegion;
@@ -62,11 +62,10 @@ class Map {
   List<UniformLocation> _uniElevationSampler;
 
   Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
-      double verticalFOVinDegrees, double pitchAngle, double reliefDepth)
+      double verticalFOVinDegrees)
       : _gl = canvas.getContext3d(),
         _dimensions = dimensions,
-        _tileImagesBasePath = tileImagesBasePath,
-        _reliefDepth = reliefDepth {
+        _tileImagesBasePath = tileImagesBasePath {
     assert(_gl != null);
 
     _screenWidth = canvas.width;
@@ -77,8 +76,7 @@ class Map {
         dimensions,
         Rect(Vector2.zero(),
             Vector2(_screenWidth.toDouble(), _screenHeight.toDouble())),
-        verticalFOVinDegrees,
-        pitchAngle);
+        verticalFOVinDegrees);
 
     _view.fitToContent(Rect(Vector2(8, 8), Vector2(9, 9)));
 

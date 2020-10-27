@@ -21,32 +21,34 @@ import 'dart:math';
 ])
 class AppComponent {
   static var onAppSettingsChanged;
+  static double defaultReliefDepth = 50;
+  static double defaultPitchAngle = 28;
 
   bool settingsDialogVisible = false;
-  int _reliefDepth = 50;
-  int _pitchAngle = 28;
+  double _reliefDepth = defaultReliefDepth;
+  double _pitchAngle = defaultPitchAngle;
 
-  int get reliefDepth {
+  double get reliefDepth {
     return _reliefDepth;
   }
 
-  set reliefDepth(int v) {
+  set reliefDepth(double v) {
     _reliefDepth = v;
     _onSettingsChanged();
   }
 
-  int get pitchAngle {
+  double get pitchAngle {
     return _pitchAngle;
   }
 
-  set pitchAngle(int v) {
+  set pitchAngle(double v) {
     _pitchAngle = v;
     _onSettingsChanged();
   }
 
   void _onSettingsChanged() {
     if (onAppSettingsChanged != null) {
-      onAppSettingsChanged(_reliefDepth / 100.0, _pitchAngle * (pi / 180.0));
+      onAppSettingsChanged(_reliefDepth, _pitchAngle);
     }
   }
 

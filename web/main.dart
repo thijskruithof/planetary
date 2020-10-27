@@ -30,9 +30,13 @@ void render(num deltaTime) {
   window.animationFrame.then(render);
 }
 
-void onSettingsChanged(double reliefDepth, double pitchAngle) {
-  map.reliefDepth = reliefDepth;
-  map.pitchAngle = pitchAngle;
+void onAppSettingsChanged(double reliefDepth, double pitchAngle) {
+  setMapSettings(reliefDepth, pitchAngle);
+}
+
+void setMapSettings(double reliefDepth, double pitchAngle) {
+  map.reliefDepth = reliefDepth / 100.0;
+  map.pitchAngle = pitchAngle * (pi / 180.0);
 }
 
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
@@ -43,8 +47,9 @@ void main() async {
 
   var dimensions = planetary.MapDimensions(512, 64, 32);
 
-  map =
-      planetary.Map(canvas, dimensions, 'tiles', 60.0, 28.0 * pi / 180.0, 0.5);
+  map = planetary.Map(canvas, dimensions, 'tiles', 60.0);
+  setMapSettings(
+      ng.AppComponent.defaultReliefDepth, ng.AppComponent.defaultPitchAngle);
 
   await map.init();
 
@@ -52,7 +57,7 @@ void main() async {
 
   unawaited(window.animationFrame.then(render));
 
-  ng.AppComponent.onAppSettingsChanged = onSettingsChanged;
+  ng.AppComponent.onAppSettingsChanged = onAppSettingsChanged;
 
   runApp(ng.AppComponentNgFactory);
 }
