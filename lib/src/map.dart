@@ -5,6 +5,7 @@ import 'dart:web_gl';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 
+import 'streamingminimap.dart';
 import 'tileimage.dart';
 import 'tileimageregion.dart';
 import 'view.dart';
@@ -41,9 +42,12 @@ class Map {
   List<TileGrid> _tileGrids;
   PanZoomInteraction _panZoomInteraction;
   double _reliefDepth = 0.5;
+  StreamingMiniMap _streamingMiniMap;
 
   TileImageRegion _nullTileAlbedoImageRegion;
   TileImageRegion _nullTileElevationImageRegion;
+
+  Program _shaderProgram;
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
@@ -61,15 +65,19 @@ class Map {
   List<UniformLocation> _uniElevationSize;
   List<UniformLocation> _uniElevationSampler;
 
-  Map(CanvasElement canvas, MapDimensions dimensions, String tileImagesBasePath,
+  Map(
+      CanvasElement mapCanvas,
+      CanvasElement streamingMiniMapCanvas,
+      MapDimensions dimensions,
+      String tileImagesBasePath,
       double verticalFOVinDegrees)
-      : _gl = canvas.getContext3d(),
+      : _gl = mapCanvas.getContext3d(),
         _dimensions = dimensions,
         _tileImagesBasePath = tileImagesBasePath {
     assert(_gl != null);
 
-    _screenWidth = canvas.width;
-    _screenHeight = canvas.height;
+    _screenWidth = mapCanvas.width;
+    _screenHeight = mapCanvas.height;
 
     // Construct our view
     _view = View(
@@ -114,6 +122,10 @@ class Map {
 
     // Initialize our panning and zooming interaction
     _panZoomInteraction = PanZoomInteraction(_view);
+
+    // Initialize our streaming mini map
+    _streamingMiniMap =
+        StreamingMiniMap(streamingMiniMapCanvas, _rootTile, _dimensions);
   }
 
   /// Initialize the map
@@ -142,11 +154,11 @@ class Map {
     _gl.shaderSource(fs, await _downloadTextFile('tile.frag'));
     _gl.compileShader(fs);
 
-    var program = _gl.createProgram();
-    _gl.attachShader(program, vs);
-    _gl.attachShader(program, fs);
-    _gl.linkProgram(program);
-    _gl.useProgram(program);
+    _shaderProgram = _gl.createProgram();
+    _gl.attachShader(_shaderProgram, vs);
+    _gl.attachShader(_shaderProgram, fs);
+    _gl.linkProgram(_shaderProgram);
+    _gl.useProgram(_shaderProgram);
 
     // Check if shaders were compiled properly
     if (!_gl.getShaderParameter(vs, WebGL.COMPILE_STATUS)) {
@@ -157,8 +169,8 @@ class Map {
       throw InitShadersException(_gl.getShaderInfoLog(fs));
     }
 
-    if (!_gl.getProgramParameter(program, WebGL.LINK_STATUS)) {
-      throw InitShadersException(_gl.getProgramInfoLog(program));
+    if (!_gl.getProgramParameter(_shaderProgram, WebGL.LINK_STATUS)) {
+      throw InitShadersException(_gl.getProgramInfoLog(_shaderProgram));
     }
 
     // Create vbo
@@ -166,7 +178,7 @@ class Map {
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, vbo);
     _gl.bufferData(WebGL.ARRAY_BUFFER, _quadVertices, WebGL.STATIC_DRAW);
 
-    var posAttrib = _gl.getAttribLocation(program, 'aPosition');
+    var posAttrib = _gl.getAttribLocation(_shaderProgram, 'aPosition');
     _gl.enableVertexAttribArray(0);
     _gl.vertexAttribPointer(posAttrib, 2, WebGL.FLOAT, false, 0, 0);
 
@@ -174,14 +186,16 @@ class Map {
     _gl.viewport(0, 0, _screenWidth, _screenHeight);
 
     // Resolve our uniforms
-    _uniWorldTopLeft = _gl.getUniformLocation(program, 'uWorldTopLeft');
-    _uniWorldBottomRight = _gl.getUniformLocation(program, 'uWorldBottomRight');
-    _uniUVTopLeft = _gl.getUniformLocation(program, 'uUVTopLeft');
-    _uniUVBottomRight = _gl.getUniformLocation(program, 'uUVBottomRight');
+    _uniWorldTopLeft = _gl.getUniformLocation(_shaderProgram, 'uWorldTopLeft');
+    _uniWorldBottomRight =
+        _gl.getUniformLocation(_shaderProgram, 'uWorldBottomRight');
+    _uniUVTopLeft = _gl.getUniformLocation(_shaderProgram, 'uUVTopLeft');
+    _uniUVBottomRight =
+        _gl.getUniformLocation(_shaderProgram, 'uUVBottomRight');
     _uniViewProjectionMatrix =
-        _gl.getUniformLocation(program, 'uViewProjectionMatrix');
-    _uniViewMatrix = _gl.getUniformLocation(program, 'uViewMatrix');
-    _uniReliefDepth = _gl.getUniformLocation(program, 'uReliefDepth');
+        _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
+    _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
+    _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
 
     _uniAlbedoSampler = List<UniformLocation>(4);
     _uniAlbedoTopLeft = List<UniformLocation>(4);
@@ -190,39 +204,51 @@ class Map {
     _uniElevationTopLeft = List<UniformLocation>(4);
     _uniElevationSize = List<UniformLocation>(4);
 
-    _uniAlbedoSampler[0] = _gl.getUniformLocation(program, 'uAlbedo00Sampler');
-    _uniAlbedoSampler[1] = _gl.getUniformLocation(program, 'uAlbedo01Sampler');
-    _uniAlbedoSampler[2] = _gl.getUniformLocation(program, 'uAlbedo10Sampler');
-    _uniAlbedoSampler[3] = _gl.getUniformLocation(program, 'uAlbedo11Sampler');
-    _uniAlbedoTopLeft[0] = _gl.getUniformLocation(program, 'uAlbedo00TopLeft');
-    _uniAlbedoTopLeft[1] = _gl.getUniformLocation(program, 'uAlbedo01TopLeft');
-    _uniAlbedoTopLeft[2] = _gl.getUniformLocation(program, 'uAlbedo10TopLeft');
-    _uniAlbedoTopLeft[3] = _gl.getUniformLocation(program, 'uAlbedo11TopLeft');
-    _uniAlbedoSize[0] = _gl.getUniformLocation(program, 'uAlbedo00Size');
-    _uniAlbedoSize[1] = _gl.getUniformLocation(program, 'uAlbedo01Size');
-    _uniAlbedoSize[2] = _gl.getUniformLocation(program, 'uAlbedo10Size');
-    _uniAlbedoSize[3] = _gl.getUniformLocation(program, 'uAlbedo11Size');
+    _uniAlbedoSampler[0] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo00Sampler');
+    _uniAlbedoSampler[1] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo01Sampler');
+    _uniAlbedoSampler[2] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo10Sampler');
+    _uniAlbedoSampler[3] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo11Sampler');
+    _uniAlbedoTopLeft[0] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo00TopLeft');
+    _uniAlbedoTopLeft[1] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo01TopLeft');
+    _uniAlbedoTopLeft[2] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo10TopLeft');
+    _uniAlbedoTopLeft[3] =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedo11TopLeft');
+    _uniAlbedoSize[0] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo00Size');
+    _uniAlbedoSize[1] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo01Size');
+    _uniAlbedoSize[2] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo10Size');
+    _uniAlbedoSize[3] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo11Size');
 
     _uniElevationSampler[0] =
-        _gl.getUniformLocation(program, 'uElevation00Sampler');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation00Sampler');
     _uniElevationSampler[1] =
-        _gl.getUniformLocation(program, 'uElevation01Sampler');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation01Sampler');
     _uniElevationSampler[2] =
-        _gl.getUniformLocation(program, 'uElevation10Sampler');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation10Sampler');
     _uniElevationSampler[3] =
-        _gl.getUniformLocation(program, 'uElevation11Sampler');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation11Sampler');
     _uniElevationTopLeft[0] =
-        _gl.getUniformLocation(program, 'uElevation00TopLeft');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation00TopLeft');
     _uniElevationTopLeft[1] =
-        _gl.getUniformLocation(program, 'uElevation01TopLeft');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation01TopLeft');
     _uniElevationTopLeft[2] =
-        _gl.getUniformLocation(program, 'uElevation10TopLeft');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation10TopLeft');
     _uniElevationTopLeft[3] =
-        _gl.getUniformLocation(program, 'uElevation11TopLeft');
-    _uniElevationSize[0] = _gl.getUniformLocation(program, 'uElevation00Size');
-    _uniElevationSize[1] = _gl.getUniformLocation(program, 'uElevation01Size');
-    _uniElevationSize[2] = _gl.getUniformLocation(program, 'uElevation10Size');
-    _uniElevationSize[3] = _gl.getUniformLocation(program, 'uElevation11Size');
+        _gl.getUniformLocation(_shaderProgram, 'uElevation11TopLeft');
+    _uniElevationSize[0] =
+        _gl.getUniformLocation(_shaderProgram, 'uElevation00Size');
+    _uniElevationSize[1] =
+        _gl.getUniformLocation(_shaderProgram, 'uElevation01Size');
+    _uniElevationSize[2] =
+        _gl.getUniformLocation(_shaderProgram, 'uElevation10Size');
+    _uniElevationSize[3] =
+        _gl.getUniformLocation(_shaderProgram, 'uElevation11Size');
 
     assert(_uniWorldTopLeft != null);
     assert(_uniWorldBottomRight != null);
@@ -262,6 +288,10 @@ class Map {
     return _panZoomInteraction;
   }
 
+  StreamingMiniMap get streamingMiniMap {
+    return _streamingMiniMap;
+  }
+
   /// Resize the map's dimensions to [screenWidth] x [screenHeight] pixels
   void resize(num screenWidth, num screenHeight) {
     _screenWidth = screenWidth;
@@ -275,7 +305,7 @@ class Map {
     _panZoomInteraction.update();
 
     // Mark all tiles as invisible
-    _visitTileChildren(_rootTile, (tile) => {tile.isVisible = false});
+    _rootTile.visitChildren((tile) => {tile.isVisible = false});
 
     // Determine what is visible
     var desiredLod = _calcDesiredLod();
@@ -287,6 +317,8 @@ class Map {
         _view.camera.frustum, visibleTiles, borderCells);
 
     _gl.clear(WebGL.COLOR_BUFFER_BIT);
+
+    _gl.useProgram(_shaderProgram);
 
     // Bind our camera matrices
     _gl.uniformMatrix4fv(
@@ -303,7 +335,7 @@ class Map {
       }
 
       // Mark this tile as being visible, uncluding all its parents
-      _visitTileParents(visibleTile, (tile) => {tile.isVisible = true});
+      visibleTile.visitParents((tile) => {tile.isVisible = true});
 
       // Construct the quad that's used by this tile
       var quad = ScreenQuad(
@@ -329,6 +361,9 @@ class Map {
 
     // Update loading
     _updateTileLoading(desiredLod);
+
+    // Update the streaming minimap
+    _streamingMiniMap.update();
   }
 
   /// Calculate the lowest LOD level we like to see on screen
@@ -563,17 +598,15 @@ class Map {
     }
 
     // Gather all visible tiles that need to have something loaded
-    _visitTileChildren(
-        _rootTile,
-        (tile) => {
-              if (tile.lod >= desiredLod &&
-                  tile.isVisible &&
-                  (tile.albedoImage.loadingState ==
-                          ETileImageLoadingState.Unloaded ||
-                      tile.elevationImage.loadingState ==
-                          ETileImageLoadingState.Unloaded))
-                {tilesPerLod[tile.lod].add(tile)}
-            });
+    _rootTile.visitChildren((tile) => {
+          if (tile.lod >= desiredLod &&
+              tile.isVisible &&
+              (tile.albedoImage.loadingState ==
+                      ETileImageLoadingState.Unloaded ||
+                  tile.elevationImage.loadingState ==
+                      ETileImageLoadingState.Unloaded))
+            {tilesPerLod[tile.lod].add(tile)}
+        });
 
     // Gather all tiles, LOD N first
     var result = tilesPerLod[tilesPerLod.length - 1];
@@ -581,24 +614,5 @@ class Map {
       result.addAll(tilesPerLod[j]);
     }
     return result;
-  }
-
-  void _visitTileChildren(Tile tile, Function(Tile) visitor) {
-    if (tile == null || tile.isValid == false) {
-      return;
-    }
-
-    visitor(tile);
-
-    for (var child in tile.children) {
-      _visitTileChildren(child, visitor);
-    }
-  }
-
-  void _visitTileParents(Tile tile, Function(Tile) visitor) {
-    while (tile != null) {
-      visitor(tile);
-      tile = tile.parent;
-    }
   }
 }

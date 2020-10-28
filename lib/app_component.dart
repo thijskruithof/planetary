@@ -5,6 +5,7 @@ import 'package:angular_components/material_button/material_button.dart';
 import 'package:angular_components/material_icon/material_icon.dart';
 import 'package:angular_components/material_dialog/material_dialog.dart';
 import 'package:angular_components/material_slider/material_slider.dart';
+import 'package:angular_components/material_toggle/material_toggle.dart';
 
 @Component(selector: 'app', templateUrl: 'app_component.html', styleUrls: [
   'app_component.css'
@@ -14,6 +15,7 @@ import 'package:angular_components/material_slider/material_slider.dart';
   MaterialButtonComponent,
   MaterialDialogComponent,
   MaterialSliderComponent,
+  MaterialToggleComponent,
   ModalComponent
 ], providers: [
   materialProviders
@@ -28,6 +30,7 @@ class AppComponent {
   bool _settingsDialogVisible = false;
   double _reliefDepth = defaultReliefDepth;
   double _pitchAngle = defaultPitchAngle;
+  bool _showStreamingMiniMap = false;
 
   bool get settingsDialogVisible {
     return _settingsDialogVisible;
@@ -60,9 +63,18 @@ class AppComponent {
     _onSettingsChanged();
   }
 
+  bool get showStreamingMiniMap {
+    return _showStreamingMiniMap;
+  }
+
+  set showStreamingMiniMap(bool v) {
+    _showStreamingMiniMap = v;
+    _onSettingsChanged();
+  }
+
   void _onSettingsChanged() {
     if (onAppSettingsChanged != null) {
-      onAppSettingsChanged(_reliefDepth, _pitchAngle);
+      onAppSettingsChanged(_reliefDepth, _pitchAngle, _showStreamingMiniMap);
     }
   }
 

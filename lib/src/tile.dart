@@ -43,4 +43,22 @@ class Tile {
         elevationImage = TileImage(
             gl, tileImagesBasePath, mapDimensions, lod, cellIndex, '_e'),
         neighbourTiles = List<Tile>(9);
+
+  void visitChildren(Function(Tile) visitor) {
+    if (isValid == false) return;
+
+    visitor(this);
+
+    for (var child in children) {
+      if (child != null) child.visitChildren(visitor);
+    }
+  }
+
+  void visitParents(Function(Tile) visitor) {
+    var tile = this;
+    while (tile != null) {
+      visitor(tile);
+      tile = tile.parent;
+    }
+  }
 }

@@ -6,9 +6,10 @@ import 'package:planetary/planetary.dart' as planetary;
 
 import 'package:planetary/app_component.template.dart' as ng;
 
-CanvasElement canvas = document.getElementById('planetaryCanvas');
+CanvasElement mapCanvas = document.getElementById('planetaryMapCanvas');
+CanvasElement streamingMiniMapCanvas =
+    document.getElementById('planetaryStreamingMiniMapCanvas');
 planetary.Map map;
-num counter;
 num canvasWidth;
 num canvasHeight;
 
@@ -17,10 +18,10 @@ void render(num deltaTime) {
   if (window.innerWidth != canvasWidth || window.innerHeight != canvasHeight) {
     canvasWidth = window.innerWidth;
     canvasHeight = window.innerHeight;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    mapCanvas.width = window.innerWidth;
+    mapCanvas.height = window.innerHeight;
 
-    map.resize(canvas.width, canvas.height);
+    map.resize(mapCanvas.width, mapCanvas.height);
   }
 
   // Render a frame
@@ -30,13 +31,16 @@ void render(num deltaTime) {
   window.animationFrame.then(render);
 }
 
-void onAppSettingsChanged(double reliefDepth, double pitchAngle) {
-  setMapSettings(reliefDepth, pitchAngle);
+void onAppSettingsChanged(
+    double reliefDepth, double pitchAngle, bool showStreamingMiniMap) {
+  setMapSettings(reliefDepth, pitchAngle, showStreamingMiniMap);
 }
 
-void setMapSettings(double reliefDepth, double pitchAngle) {
+void setMapSettings(
+    double reliefDepth, double pitchAngle, bool showStreamingMiniMap) {
   map.reliefDepth = reliefDepth / 100.0;
   map.pitchAngle = pitchAngle * (pi / 180.0);
+  map.streamingMiniMap.visible = showStreamingMiniMap;
 }
 
 void onAppSettingsDialogVisibilityChanged(bool isVisible) {
@@ -46,14 +50,16 @@ void onAppSettingsDialogVisibilityChanged(bool isVisible) {
 // https://gist.github.com/m-decoster/ec44495badb54c26bb1c
 
 void main() async {
-  canvasWidth = canvas.width;
-  canvasHeight = canvas.height;
+  canvasWidth = mapCanvas.width;
+  canvasHeight = mapCanvas.height;
 
   var dimensions = planetary.MapDimensions(512, 64, 32);
 
-  map = planetary.Map(canvas, dimensions, 'tiles', 60.0);
-  setMapSettings(
-      ng.AppComponent.defaultReliefDepth, ng.AppComponent.defaultPitchAngle);
+  map = planetary.Map(
+      mapCanvas, streamingMiniMapCanvas, dimensions, 'tiles', 60.0);
+
+  setMapSettings(ng.AppComponent.defaultReliefDepth,
+      ng.AppComponent.defaultPitchAngle, false);
 
   await map.init();
 
