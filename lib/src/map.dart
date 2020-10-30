@@ -125,7 +125,7 @@ class Map {
 
     // Initialize our streaming mini map
     _streamingMiniMap =
-        StreamingMiniMap(streamingMiniMapCanvas, _rootTile, _dimensions);
+        StreamingMiniMap(streamingMiniMapCanvas, _rootTile, _dimensions, _view);
   }
 
   /// Initialize the map

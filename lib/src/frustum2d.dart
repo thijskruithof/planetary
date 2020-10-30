@@ -77,6 +77,22 @@ class Frustum2d {
     return _worldBoundsRect;
   }
 
+  Vector2 get posTopLeft {
+    return _posTopLeft;
+  }
+
+  Vector2 get posBottomLeft {
+    return _posBottomLeft;
+  }
+
+  Vector2 get posTopRight {
+    return _posTopRight;
+  }
+
+  Vector2 get posBottomRight {
+    return _posBottomRight;
+  }
+
   /// Check if this 2D frustum overlaps with world-space rectangle [worldRect]
   bool overlaps(Rect worldRect) {
     // note: we assume here that our camera only contains pitch, so the frustum is always horizontal.
