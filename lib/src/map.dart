@@ -359,8 +359,9 @@ class Map {
       _drawBorderCellQuad(borderCell);
     }
 
-    // Update loading
+    // Update loading and unloading
     _updateTileLoading(desiredLod);
+    _updateTileUnloading();
 
     // Update the streaming minimap
     _streamingMiniMap.update();
@@ -587,6 +588,24 @@ class Map {
         tile.elevationImage.startLoading();
       }
     }
+  }
+
+  void _updateTileUnloadingPerTile(tile) {
+    if (tile.isVisible) {
+      return;
+    }
+
+    if (tile.albedoImage.loadingState == ETileImageLoadingState.Loaded) {
+      tile.albedoImage.loadingState = ETileImageLoadingState.Unloaded;
+    }
+
+    if (tile.elevationImage.loadingState == ETileImageLoadingState.Loaded) {
+      tile.elevationImage.loadingState = ETileImageLoadingState.Unloaded;
+    }
+  }
+
+  void _updateTileUnloading() {
+    _rootTile.visitChildren(_updateTileUnloadingPerTile);
   }
 
   /// Determine which tiles to load.
