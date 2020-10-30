@@ -6,6 +6,7 @@ class MapDimensions {
   final int numTilesXLod0;
   final int numTilesYLod0;
   final int numLods;
+
   MapDimensions(int tileSize, int numTilesXLod0, int numTilesYLod0)
       : tileSize = tileSize,
         numTilesXLod0 = numTilesXLod0,
