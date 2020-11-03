@@ -11,3 +11,5 @@ doc/api/
 # Tile assets
 web/tiles/
 debug.log
+
+deploy.bat

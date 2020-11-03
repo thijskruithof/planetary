@@ -14,6 +14,13 @@
                 "isDefault": true
             },
             "options": {}
+        },
+        {
+            "label": "Deploy release",
+            "type": "process",
+            "command": "deploy.bat",
+            "problemMatcher": [],
+            "options": { "cwd" : "${workspaceFolder}" }
         }
     ]
 }
