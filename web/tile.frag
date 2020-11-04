@@ -1,10 +1,7 @@
 precision highp float;
 
 varying vec2 vUV;
-varying vec3 vPositionView;
-varying vec3 vEyeGroundNormal;
-varying vec3 vEyeGroundTangent;
-varying vec3 vEyeGroundBitangent;
+varying vec2 vReliefSampleDir;
 
 // 2x2 Albedo textures
 uniform sampler2D uAlbedo00Sampler;
@@ -33,8 +30,6 @@ uniform vec2 uElevation00Size;
 uniform vec2 uElevation01Size;
 uniform vec2 uElevation10Size;
 uniform vec2 uElevation11Size;
-
-uniform float uReliefDepth;
 
 // UV coords of quad's corners
 uniform vec2 uUVTopLeft;
@@ -125,13 +120,8 @@ void main()
 {
     vec2 uv = max(uUVTopLeft, min(uUVBottomRight, vUV));
 
-    // e: eye space
-    // t: tangent space
-    vec3 eview = normalize(vPositionView.xyz);
-    vec3 tview = normalize(vec3(dot(eview, normalize(vEyeGroundTangent)), dot(eview, normalize(vEyeGroundBitangent)), dot(eview, -normalize(vEyeGroundNormal))));
-    vec2 ds = tview.xy * uReliefDepth / tview.z;
-    float dist = find_intersection(uv, ds);
-    uv += dist * ds;
+    float dist = find_intersection(uv, vReliefSampleDir);
+    uv += dist * vReliefSampleDir;
 
     gl_FragColor = vec4(sampleAlbedo3x3(uv), 1.0); 
 }

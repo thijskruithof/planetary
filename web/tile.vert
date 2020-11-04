@@ -15,10 +15,9 @@ uniform mat4 uViewProjectionMatrix;
 uniform mat4 uViewMatrix;
 
 varying vec2 vUV;
-varying vec3 vPositionView;
-varying vec3 vEyeGroundNormal;
-varying vec3 vEyeGroundTangent;
-varying vec3 vEyeGroundBitangent;
+varying vec2 vReliefSampleDir;
+
+uniform float uReliefDepth;
 
 
 void main() {
@@ -28,9 +27,10 @@ void main() {
 
   vUV = mix(uUVTopLeft, uUVBottomRight, aPosition);
 
-  vPositionView = (uViewMatrix * worldPos4).xyz;
+  // e: eye space
+  // t: tangent space
+  vec3 eview = normalize((uViewMatrix * worldPos4).xyz);
+  vec3 tview = normalize(vec3(dot(eview, uViewMatrix[0].xyz), dot(eview, uViewMatrix[1].xyz), dot(eview, -uViewMatrix[2].xyz)));
 
-  vEyeGroundNormal = (uViewMatrix * vec4(0.0, 0.0, 1.0, 0.0)).xyz;
-  vEyeGroundTangent = (uViewMatrix * vec4(1.0, 0.0, 0.0, 0.0)).xyz;
-  vEyeGroundBitangent = cross(vEyeGroundNormal, vEyeGroundTangent); 
+  vReliefSampleDir = tview.xy * uReliefDepth / tview.z;
 }
