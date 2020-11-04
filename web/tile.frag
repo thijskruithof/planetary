@@ -36,12 +36,16 @@ uniform vec2 uElevation11Size;
 
 uniform float uReliefDepth;
 
+// UV coords of quad's corners
+uniform vec2 uUVTopLeft;
+uniform vec2 uUVBottomRight;
+
 
 #define SAMPLE_MAP1(sampler, tl, sz, offX, offY) return texture2D(sampler, tl + (uv + vec2(offX,offY))*sz).r
 #define SAMPLE_MAP3(sampler, tl, sz, offX, offY) return texture2D(sampler, tl + (uv + vec2(offX,offY))*sz).xyz
 
-#define SAMPLE_ROW1(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x >= 1.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP1(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
-#define SAMPLE_ROW3(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x >= 1.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP3(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
+#define SAMPLE_ROW1(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x > 1.0) SAMPLE_MAP1(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP1(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
+#define SAMPLE_ROW3(samplerMiddle, samplerOutside, tlMiddle, szMiddle, tlOutside, szOutside, offY) if (uv.x < 0.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, 1.0, offY); else if (uv.x > 1.0) SAMPLE_MAP3(samplerOutside, tlOutside, szOutside, -1.0, offY); else SAMPLE_MAP3(samplerMiddle, tlMiddle, szMiddle, 0.0, offY);
 
 float sampleElevation3x3(vec2 uv)
 {
@@ -66,12 +70,12 @@ float sampleElevation3x3(vec2 uv)
 vec3 sampleAlbedo3x3(vec2 uv)
 {
     // Top?
-    if (uv.y < 0.0) 
+    if (uv.y < 0.0)
     { 
         SAMPLE_ROW3(uAlbedo10Sampler, uAlbedo11Sampler, uAlbedo10TopLeft, uAlbedo10Size, uAlbedo11TopLeft, uAlbedo11Size, 1.0); 
     }
     // Bottom?
-    else if (uv.y >= 1.0) 
+    else if (uv.y > 1.0) 
     { 
         SAMPLE_ROW3(uAlbedo10Sampler, uAlbedo11Sampler, uAlbedo10TopLeft, uAlbedo10Size, uAlbedo11TopLeft, uAlbedo11Size, -1.0); 
     }
@@ -116,21 +120,18 @@ float find_intersection(vec2 dp, vec2 ds)
 	return best_depth;
 }  
 
+
 void main() 
 {
-  // vec4 albedo = texture2D(uAlbedo00Sampler, uAlbedo00TopLeft + vUV*uAlbedo00Size);
+    vec2 uv = max(uUVTopLeft, min(uUVBottomRight, vUV));
 
-  // vec4 elevation = texture2D(uElevation00Sampler, uElevation00TopLeft + vUV*uElevation00Size);
+    // e: eye space
+    // t: tangent space
+    vec3 eview = normalize(vPositionView.xyz);
+    vec3 tview = normalize(vec3(dot(eview, normalize(vEyeGroundTangent)), dot(eview, normalize(vEyeGroundBitangent)), dot(eview, -normalize(vEyeGroundNormal))));
+    vec2 ds = tview.xy * uReliefDepth / tview.z;
+    float dist = find_intersection(uv, ds);
+    uv += dist * ds;
 
-  // gl_FragColor = 0.001*albedo + elevation;
-
-  // e: eye space
-	// t: tangent space
-	vec3 eview = normalize(vPositionView.xyz);
-	vec3 tview = normalize(vec3(dot(eview, normalize(vEyeGroundTangent)), dot(eview, normalize(vEyeGroundBitangent)), dot(eview, -normalize(vEyeGroundNormal))));
-	vec2 ds = tview.xy * uReliefDepth / tview.z;
-	float dist = find_intersection(vUV, ds);
-	vec2 uv = vUV + dist * ds;
-
-  gl_FragColor = vec4(sampleAlbedo3x3(uv), 1.0); 
+    gl_FragColor = vec4(sampleAlbedo3x3(uv), 1.0); 
 }
