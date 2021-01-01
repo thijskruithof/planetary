@@ -13,3 +13,8 @@ web/tiles/
 debug.log
 
 deploy.bat
+
+unversioned/
+
+tool/generator/x64/
+tool/generator/.vs/
