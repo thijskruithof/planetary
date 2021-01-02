@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:html';
-// import 'dart:typed_data';
+import 'dart:typed_data';
 import 'dart:web_gl';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
@@ -30,6 +30,7 @@ class InitShadersException implements Exception {
 
 // Float32List _quadVertices =
 //     Float32List.fromList([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]);
+// [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0]);
 
 /// A planetary map
 class Map {
@@ -52,8 +53,6 @@ class Map {
 
   UniformLocation _uniWorldTopLeft;
   UniformLocation _uniWorldBottomRight;
-  UniformLocation _uniUVTopLeft;
-  UniformLocation _uniUVBottomRight;
   UniformLocation _uniViewProjectionMatrix;
   // UniformLocation _uniViewMatrix;
 
@@ -171,15 +170,6 @@ class Map {
       throw InitShadersException(_gl.getProgramInfoLog(_shaderProgram));
     }
 
-    // // Create vbo
-    // var vbo = _gl.createBuffer();
-    // _gl.bindBuffer(WebGL.ARRAY_BUFFER, vbo);
-    // _gl.bufferData(WebGL.ARRAY_BUFFER, _quadVertices, WebGL.STATIC_DRAW);
-
-    // var posAttrib = _gl.getAttribLocation(_shaderProgram, 'aPosition');
-    // _gl.enableVertexAttribArray(0);
-    // _gl.vertexAttribPointer(posAttrib, 2, WebGL.FLOAT, false, 0, 0);
-
     _gl.clearColor(0.0, 0.0, 0.0, 1.0);
     _gl.viewport(0, 0, _screenWidth, _screenHeight);
 
@@ -187,9 +177,6 @@ class Map {
     _uniWorldTopLeft = _gl.getUniformLocation(_shaderProgram, 'uWorldTopLeft');
     _uniWorldBottomRight =
         _gl.getUniformLocation(_shaderProgram, 'uWorldBottomRight');
-    _uniUVTopLeft = _gl.getUniformLocation(_shaderProgram, 'uUVTopLeft');
-    _uniUVBottomRight =
-        _gl.getUniformLocation(_shaderProgram, 'uUVBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
     // _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
@@ -203,8 +190,6 @@ class Map {
 
     assert(_uniWorldTopLeft != null);
     assert(_uniWorldBottomRight != null);
-    assert(_uniUVTopLeft != null);
-    assert(_uniUVBottomRight != null);
     assert(_uniViewProjectionMatrix != null);
     // assert(_uniViewMatrix != null);
     // assert(_uniReliefDepth != null);
@@ -286,22 +271,6 @@ class Map {
       visibleTile.visitParents((tile) => {tile.isVisible = true});
 
       _drawTileMesh(visibleTile);
-
-      // // Construct the quad that's used by this tile
-      // var quad = ScreenQuad(
-      //     visibleTile.worldRect, Rect(Vector2.zero(), Vector2(1.0, 1.0)));
-
-      // // Split up the quad at the camera's X and Y. These are the lines where the
-      // // parallax perspective direction changes. We have to render using split
-      // // quads as a single quad never samples a tile's neighbours on BOTH directions.
-      // var quads = <ScreenQuad>[quad];
-      // quads = ScreenQuad.splitAtWorldX(quads, _view.camera.pos.x);
-      // quads = ScreenQuad.splitAtWorldY(quads, _view.camera.pos.y);
-
-      // // Draw all of the tile's quads
-      // for (var quad in quads) {
-      //   _drawTileQuad(visibleTile, quad);
-      // }
     }
 
     // // Draw all border cells
@@ -357,46 +326,21 @@ class Map {
     _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
     _gl.uniform1i(_uniAlbedoSampler, 0);
 
+    // Our quad's corner coords
+    _gl.uniform2f(_uniWorldTopLeft, tile.worldRect.min.x, tile.worldRect.min.y);
+    _gl.uniform2f(
+        _uniWorldBottomRight, tile.worldRect.max.x, tile.worldRect.max.y);
+
     // Bind vertices and indices
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, tile.mesh.vertexBuffer);
     _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, tile.mesh.indexBuffer);
-
     _gl.enableVertexAttribArray(0);
     _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
 
-    // Draw!
+    // Draw our triangles
     _gl.drawElements(
         WebGL.TRIANGLES, tile.mesh.numIndices, WebGL.UNSIGNED_SHORT, 0);
   }
-
-  // /// Draw a single quad tile
-  // void _drawTileQuad(Tile tile, ScreenQuad quad) {
-  //   var isRight = quad.worldRect.min.x >= _view.camera.pos.x;
-  //   var isTop = quad.worldRect.min.y < _view.camera.pos.y;
-
-  //   var neighbour1 = isRight ? 5 : 3;
-  //   var neighbour2 = isTop ? 1 : 7;
-  //   var neighbour3 = isRight ? (isTop ? 2 : 8) : (isTop ? 0 : 6);
-
-  //   // Set current cell uniforms (cell 0)
-  //   _setTileCellUniforms(0, tile);
-  //   // Set left/right cell uniforms (cell 1)
-  //   _setTileCellUniforms(1, tile.neighbourTiles[neighbour1]);
-  //   // Set above/below cell uniforms (cell 2)
-  //   _setTileCellUniforms(2, tile.neighbourTiles[neighbour2]);
-  //   // Set diagonal cell uniforms (cell 3)
-  //   _setTileCellUniforms(3, tile.neighbourTiles[neighbour3]);
-
-  //   // Our quad's corner coords
-  //   _gl.uniform2f(_uniWorldTopLeft, quad.worldRect.min.x, quad.worldRect.min.y);
-  //   _gl.uniform2f(
-  //       _uniWorldBottomRight, quad.worldRect.max.x, quad.worldRect.max.y);
-  //   _gl.uniform2f(_uniUVTopLeft, quad.uvRect.min.x, quad.uvRect.min.y);
-  //   _gl.uniform2f(_uniUVBottomRight, quad.uvRect.max.x, quad.uvRect.max.y);
-
-  //   // Draw a single quad
-  //   _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
-  // }
 
   /// Get the albedo image and the image's region
   TileImageRegion _getTileAlbedoImageRegion(Tile tile) {
@@ -425,31 +369,6 @@ class Map {
 
     return TileImageRegion(tile.albedoImage, imageRect);
   }
-
-  // /// Get the elevation image and the image's region
-  // TileImageRegion _getTileElevationImageRegion(Tile tile) {
-  //   // Start with the full size image rect
-  //   var imageRect = Rect(Vector2.zero(), Vector2(1, 1));
-
-  //   // If our tile's image is not loaded find the first parent tile that has its image loaded.
-  //   while (tile != null &&
-  //       tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
-  //     // Recalculate our image rect
-  //     var newImageRectSize = imageRect.size * 0.5;
-  //     var newImageRectOffset = (imageRect.min * 0.5) +
-  //         (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
-  //             0.5);
-  //     imageRect =
-  //         Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
-
-  //     tile = tile.parent;
-  //   }
-
-  //   // If we don't have any image loaded for this tile, simply show the null tile.
-  //   if (tile == null ||
-  //       tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
-  //     return _nullTileElevationImageRegion;
-  //   }
 
   //   return TileImageRegion(tile.elevationImage, imageRect);
   // }
