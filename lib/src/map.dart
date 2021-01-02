@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:html';
-import 'dart:typed_data';
+// import 'dart:typed_data';
 import 'dart:web_gl';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
 
 import 'streamingminimap.dart';
 import 'tileimage.dart';
+import 'tilemesh.dart';
 import 'tileimageregion.dart';
 import 'view.dart';
 import 'mapdimensions.dart';
@@ -14,7 +15,7 @@ import 'tile.dart';
 import 'rect.dart';
 import 'tilegrid.dart';
 import 'panzoominteraction.dart';
-import 'screenquad.dart';
+// import 'screenquad.dart';
 
 class InitShadersException implements Exception {
   String _shadersLog;
@@ -27,8 +28,8 @@ class InitShadersException implements Exception {
   }
 }
 
-Float32List _quadVertices =
-    Float32List.fromList([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]);
+// Float32List _quadVertices =
+//     Float32List.fromList([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]);
 
 /// A planetary map
 class Map {
@@ -45,7 +46,7 @@ class Map {
   StreamingMiniMap _streamingMiniMap;
 
   TileImageRegion _nullTileAlbedoImageRegion;
-  TileImageRegion _nullTileElevationImageRegion;
+  // TileImageRegion _nullTileElevationImageRegion;
 
   Program _shaderProgram;
 
@@ -54,16 +55,13 @@ class Map {
   UniformLocation _uniUVTopLeft;
   UniformLocation _uniUVBottomRight;
   UniformLocation _uniViewProjectionMatrix;
-  UniformLocation _uniViewMatrix;
+  // UniformLocation _uniViewMatrix;
 
-  UniformLocation _uniReliefDepth;
+  // UniformLocation _uniReliefDepth;
 
-  List<UniformLocation> _uniAlbedoTopLeft;
-  List<UniformLocation> _uniAlbedoSize;
-  List<UniformLocation> _uniAlbedoSampler;
-  List<UniformLocation> _uniElevationTopLeft;
-  List<UniformLocation> _uniElevationSize;
-  List<UniformLocation> _uniElevationSampler;
+  UniformLocation _uniAlbedoTopLeft;
+  UniformLocation _uniAlbedoSize;
+  UniformLocation _uniAlbedoSampler;
 
   Map(
       CanvasElement mapCanvas,
@@ -135,13 +133,13 @@ class Map {
     print('planetary: loading nulltile.');
 
     var nullTileAlbedoImage = TileImage.fromFilePath(_gl, 'nulltile.jpg');
-    var nullTileElevationImage = TileImage.fromFilePath(_gl, 'nulltile_e.jpg');
+    // var nullTileElevationImage = TileImage.fromFilePath(_gl, 'nulltile_e.jpg');
     _nullTileAlbedoImageRegion =
         TileImageRegion(nullTileAlbedoImage, Rect.unit());
-    _nullTileElevationImageRegion =
-        TileImageRegion(nullTileElevationImage, Rect.unit());
+    // _nullTileElevationImageRegion =
+    //     TileImageRegion(nullTileElevationImage, Rect.unit());
     nullTileAlbedoImage.startLoading();
-    nullTileElevationImage.startLoading();
+    // nullTileElevationImage.startLoading();
 
     print('planetary: loading shaders.');
 
@@ -173,14 +171,14 @@ class Map {
       throw InitShadersException(_gl.getProgramInfoLog(_shaderProgram));
     }
 
-    // Create vbo
-    var vbo = _gl.createBuffer();
-    _gl.bindBuffer(WebGL.ARRAY_BUFFER, vbo);
-    _gl.bufferData(WebGL.ARRAY_BUFFER, _quadVertices, WebGL.STATIC_DRAW);
+    // // Create vbo
+    // var vbo = _gl.createBuffer();
+    // _gl.bindBuffer(WebGL.ARRAY_BUFFER, vbo);
+    // _gl.bufferData(WebGL.ARRAY_BUFFER, _quadVertices, WebGL.STATIC_DRAW);
 
-    var posAttrib = _gl.getAttribLocation(_shaderProgram, 'aPosition');
-    _gl.enableVertexAttribArray(0);
-    _gl.vertexAttribPointer(posAttrib, 2, WebGL.FLOAT, false, 0, 0);
+    // var posAttrib = _gl.getAttribLocation(_shaderProgram, 'aPosition');
+    // _gl.enableVertexAttribArray(0);
+    // _gl.vertexAttribPointer(posAttrib, 2, WebGL.FLOAT, false, 0, 0);
 
     _gl.clearColor(0.0, 0.0, 0.0, 1.0);
     _gl.viewport(0, 0, _screenWidth, _screenHeight);
@@ -194,78 +192,28 @@ class Map {
         _gl.getUniformLocation(_shaderProgram, 'uUVBottomRight');
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
-    _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
-    _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
+    // _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
+    // _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
 
-    _uniAlbedoSampler = List<UniformLocation>(4);
-    _uniAlbedoTopLeft = List<UniformLocation>(4);
-    _uniAlbedoSize = List<UniformLocation>(4);
-    _uniElevationSampler = List<UniformLocation>(4);
-    _uniElevationTopLeft = List<UniformLocation>(4);
-    _uniElevationSize = List<UniformLocation>(4);
-
-    _uniAlbedoSampler[0] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo00Sampler');
-    _uniAlbedoSampler[1] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo01Sampler');
-    _uniAlbedoSampler[2] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo10Sampler');
-    _uniAlbedoSampler[3] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo11Sampler');
-    _uniAlbedoTopLeft[0] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo00TopLeft');
-    _uniAlbedoTopLeft[1] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo01TopLeft');
-    _uniAlbedoTopLeft[2] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo10TopLeft');
-    _uniAlbedoTopLeft[3] =
-        _gl.getUniformLocation(_shaderProgram, 'uAlbedo11TopLeft');
-    _uniAlbedoSize[0] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo00Size');
-    _uniAlbedoSize[1] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo01Size');
-    _uniAlbedoSize[2] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo10Size');
-    _uniAlbedoSize[3] = _gl.getUniformLocation(_shaderProgram, 'uAlbedo11Size');
-
-    _uniElevationSampler[0] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation00Sampler');
-    _uniElevationSampler[1] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation01Sampler');
-    _uniElevationSampler[2] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation10Sampler');
-    _uniElevationSampler[3] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation11Sampler');
-    _uniElevationTopLeft[0] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation00TopLeft');
-    _uniElevationTopLeft[1] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation01TopLeft');
-    _uniElevationTopLeft[2] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation10TopLeft');
-    _uniElevationTopLeft[3] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation11TopLeft');
-    _uniElevationSize[0] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation00Size');
-    _uniElevationSize[1] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation01Size');
-    _uniElevationSize[2] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation10Size');
-    _uniElevationSize[3] =
-        _gl.getUniformLocation(_shaderProgram, 'uElevation11Size');
+    _uniAlbedoSampler =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedoSampler');
+    _uniAlbedoTopLeft =
+        _gl.getUniformLocation(_shaderProgram, 'uAlbedoTopLeft');
+    _uniAlbedoSize = _gl.getUniformLocation(_shaderProgram, 'uAlbedoSize');
 
     assert(_uniWorldTopLeft != null);
     assert(_uniWorldBottomRight != null);
     assert(_uniUVTopLeft != null);
     assert(_uniUVBottomRight != null);
     assert(_uniViewProjectionMatrix != null);
-    assert(_uniViewMatrix != null);
-    assert(_uniReliefDepth != null);
+    // assert(_uniViewMatrix != null);
+    // assert(_uniReliefDepth != null);
 
-    for (var i = 0; i < 4; ++i) {
-      assert(_uniAlbedoSampler[i] != null);
-      assert(_uniAlbedoTopLeft[i] != null);
-      assert(_uniAlbedoSize[i] != null);
-      assert(_uniElevationSampler[i] != null);
-      assert(_uniElevationTopLeft[i] != null);
-      assert(_uniElevationSize[i] != null);
-    }
+    assert(_uniAlbedoSampler != null);
+    assert(_uniAlbedoTopLeft != null);
+    assert(_uniAlbedoSize != null);
+
+    print('planetary: initialized!');
   }
 
   double get reliefDepth {
@@ -323,10 +271,10 @@ class Map {
     // Bind our camera matrices
     _gl.uniformMatrix4fv(
         _uniViewProjectionMatrix, false, _view.camera.viewProjectionMatrix);
-    _gl.uniformMatrix4fv(_uniViewMatrix, false, _view.camera.viewMatrix);
+    // _gl.uniformMatrix4fv(_uniViewMatrix, false, _view.camera.viewMatrix);
 
     // Set the relief depth
-    _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
+    // _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
 
     // Draw all visible tiles
     for (var visibleTile in visibleTiles) {
@@ -337,27 +285,29 @@ class Map {
       // Mark this tile as being visible, uncluding all its parents
       visibleTile.visitParents((tile) => {tile.isVisible = true});
 
-      // Construct the quad that's used by this tile
-      var quad = ScreenQuad(
-          visibleTile.worldRect, Rect(Vector2.zero(), Vector2(1.0, 1.0)));
+      _drawTileMesh(visibleTile);
 
-      // Split up the quad at the camera's X and Y. These are the lines where the
-      // parallax perspective direction changes. We have to render using split
-      // quads as a single quad never samples a tile's neighbours on BOTH directions.
-      var quads = <ScreenQuad>[quad];
-      quads = ScreenQuad.splitAtWorldX(quads, _view.camera.pos.x);
-      quads = ScreenQuad.splitAtWorldY(quads, _view.camera.pos.y);
+      // // Construct the quad that's used by this tile
+      // var quad = ScreenQuad(
+      //     visibleTile.worldRect, Rect(Vector2.zero(), Vector2(1.0, 1.0)));
 
-      // Draw all of the tile's quads
-      for (var quad in quads) {
-        _drawTileQuad(visibleTile, quad);
-      }
+      // // Split up the quad at the camera's X and Y. These are the lines where the
+      // // parallax perspective direction changes. We have to render using split
+      // // quads as a single quad never samples a tile's neighbours on BOTH directions.
+      // var quads = <ScreenQuad>[quad];
+      // quads = ScreenQuad.splitAtWorldX(quads, _view.camera.pos.x);
+      // quads = ScreenQuad.splitAtWorldY(quads, _view.camera.pos.y);
+
+      // // Draw all of the tile's quads
+      // for (var quad in quads) {
+      //   _drawTileQuad(visibleTile, quad);
+      // }
     }
 
-    // Draw all border cells
-    for (var borderCell in borderCells) {
-      _drawBorderCellQuad(borderCell);
-    }
+    // // Draw all border cells
+    // for (var borderCell in borderCells) {
+    //   _drawBorderCellQuad(borderCell);
+    // }
 
     // Update loading and unloading
     _updateTileLoading(desiredLod);
@@ -386,68 +336,67 @@ class Map {
     return lodInt;
   }
 
-  /// Set the shader uniforms of a specific cell, of the 2x2 cells that our tile shader samples from.
-  void _setTileCellUniforms(int cellIndex, Tile tile) {
-    // Get our albedo and elevation images and their regions
+  /// Draw a single tile
+  void _drawTileMesh(Tile tile) {
+    if (tile.mesh.loadingState != ETileMeshLoadingState.Loaded) return;
+
+    // Get our albedo image and region
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
     if (albedoImageRegion.image.loadingState != ETileImageLoadingState.Loaded) {
       return;
     }
-    var elevationImageRegion = _getTileElevationImageRegion(tile);
-    if (elevationImageRegion.image.loadingState !=
-        ETileImageLoadingState.Loaded) {
-      return;
-    }
 
-    // Our albedo image's coordinates
-    _gl.uniform2f(_uniAlbedoTopLeft[cellIndex], albedoImageRegion.region.min.x,
+    // Set albedo image's uv coordinates
+    _gl.uniform2f(_uniAlbedoTopLeft, albedoImageRegion.region.min.x,
         albedoImageRegion.region.min.y);
-    _gl.uniform2f(_uniAlbedoSize[cellIndex], albedoImageRegion.region.size.x,
+    _gl.uniform2f(_uniAlbedoSize, albedoImageRegion.region.size.x,
         albedoImageRegion.region.size.y);
 
-    // Our elevation image's coordinates
-    _gl.uniform2f(_uniElevationTopLeft[cellIndex],
-        elevationImageRegion.region.min.x, elevationImageRegion.region.min.y);
-    _gl.uniform2f(_uniElevationSize[cellIndex],
-        elevationImageRegion.region.size.x, elevationImageRegion.region.size.y);
-
-    // Our albedo and elevation textures
-    _gl.activeTexture(WebGL.TEXTURE0 + cellIndex * 2);
+    // Bind albedo texture
+    _gl.activeTexture(WebGL.TEXTURE0);
     _gl.bindTexture(WebGL.TEXTURE_2D, albedoImageRegion.image.texture);
-    _gl.activeTexture(WebGL.TEXTURE1 + cellIndex * 2);
-    _gl.bindTexture(WebGL.TEXTURE_2D, elevationImageRegion.image.texture);
-    _gl.uniform1i(_uniAlbedoSampler[cellIndex], cellIndex * 2);
-    _gl.uniform1i(_uniElevationSampler[cellIndex], 1 + cellIndex * 2);
+    _gl.uniform1i(_uniAlbedoSampler, 0);
+
+    // Bind vertices and indices
+    _gl.bindBuffer(WebGL.ARRAY_BUFFER, tile.mesh.vertexBuffer);
+    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, tile.mesh.indexBuffer);
+
+    _gl.enableVertexAttribArray(0);
+    _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
+
+    // Draw!
+    _gl.drawElements(
+        WebGL.TRIANGLES, tile.mesh.numIndices, WebGL.UNSIGNED_SHORT, 0);
   }
 
-  /// Draw a single quad tile
-  void _drawTileQuad(Tile tile, ScreenQuad quad) {
-    var isRight = quad.worldRect.min.x >= _view.camera.pos.x;
-    var isTop = quad.worldRect.min.y < _view.camera.pos.y;
+  // /// Draw a single quad tile
+  // void _drawTileQuad(Tile tile, ScreenQuad quad) {
+  //   var isRight = quad.worldRect.min.x >= _view.camera.pos.x;
+  //   var isTop = quad.worldRect.min.y < _view.camera.pos.y;
 
-    var neighbour1 = isRight ? 5 : 3;
-    var neighbour2 = isTop ? 1 : 7;
-    var neighbour3 = isRight ? (isTop ? 2 : 8) : (isTop ? 0 : 6);
+  //   var neighbour1 = isRight ? 5 : 3;
+  //   var neighbour2 = isTop ? 1 : 7;
+  //   var neighbour3 = isRight ? (isTop ? 2 : 8) : (isTop ? 0 : 6);
 
-    // Set current cell uniforms (cell 0)
-    _setTileCellUniforms(0, tile);
-    // Set left/right cell uniforms (cell 1)
-    _setTileCellUniforms(1, tile.neighbourTiles[neighbour1]);
-    // Set above/below cell uniforms (cell 2)
-    _setTileCellUniforms(2, tile.neighbourTiles[neighbour2]);
-    // Set diagonal cell uniforms (cell 3)
-    _setTileCellUniforms(3, tile.neighbourTiles[neighbour3]);
+  //   // Set current cell uniforms (cell 0)
+  //   _setTileCellUniforms(0, tile);
+  //   // Set left/right cell uniforms (cell 1)
+  //   _setTileCellUniforms(1, tile.neighbourTiles[neighbour1]);
+  //   // Set above/below cell uniforms (cell 2)
+  //   _setTileCellUniforms(2, tile.neighbourTiles[neighbour2]);
+  //   // Set diagonal cell uniforms (cell 3)
+  //   _setTileCellUniforms(3, tile.neighbourTiles[neighbour3]);
 
-    // Our quad's corner coords
-    _gl.uniform2f(_uniWorldTopLeft, quad.worldRect.min.x, quad.worldRect.min.y);
-    _gl.uniform2f(
-        _uniWorldBottomRight, quad.worldRect.max.x, quad.worldRect.max.y);
-    _gl.uniform2f(_uniUVTopLeft, quad.uvRect.min.x, quad.uvRect.min.y);
-    _gl.uniform2f(_uniUVBottomRight, quad.uvRect.max.x, quad.uvRect.max.y);
+  //   // Our quad's corner coords
+  //   _gl.uniform2f(_uniWorldTopLeft, quad.worldRect.min.x, quad.worldRect.min.y);
+  //   _gl.uniform2f(
+  //       _uniWorldBottomRight, quad.worldRect.max.x, quad.worldRect.max.y);
+  //   _gl.uniform2f(_uniUVTopLeft, quad.uvRect.min.x, quad.uvRect.min.y);
+  //   _gl.uniform2f(_uniUVBottomRight, quad.uvRect.max.x, quad.uvRect.max.y);
 
-    // Draw a single quad
-    _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
-  }
+  //   // Draw a single quad
+  //   _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
+  // }
 
   /// Get the albedo image and the image's region
   TileImageRegion _getTileAlbedoImageRegion(Tile tile) {
@@ -477,54 +426,54 @@ class Map {
     return TileImageRegion(tile.albedoImage, imageRect);
   }
 
-  /// Get the elevation image and the image's region
-  TileImageRegion _getTileElevationImageRegion(Tile tile) {
-    // Start with the full size image rect
-    var imageRect = Rect(Vector2.zero(), Vector2(1, 1));
+  // /// Get the elevation image and the image's region
+  // TileImageRegion _getTileElevationImageRegion(Tile tile) {
+  //   // Start with the full size image rect
+  //   var imageRect = Rect(Vector2.zero(), Vector2(1, 1));
 
-    // If our tile's image is not loaded find the first parent tile that has its image loaded.
-    while (tile != null &&
-        tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
-      // Recalculate our image rect
-      var newImageRectSize = imageRect.size * 0.5;
-      var newImageRectOffset = (imageRect.min * 0.5) +
-          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
-              0.5);
-      imageRect =
-          Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
+  //   // If our tile's image is not loaded find the first parent tile that has its image loaded.
+  //   while (tile != null &&
+  //       tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
+  //     // Recalculate our image rect
+  //     var newImageRectSize = imageRect.size * 0.5;
+  //     var newImageRectOffset = (imageRect.min * 0.5) +
+  //         (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
+  //             0.5);
+  //     imageRect =
+  //         Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
 
-      tile = tile.parent;
-    }
+  //     tile = tile.parent;
+  //   }
 
-    // If we don't have any image loaded for this tile, simply show the null tile.
-    if (tile == null ||
-        tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
-      return _nullTileElevationImageRegion;
-    }
+  //   // If we don't have any image loaded for this tile, simply show the null tile.
+  //   if (tile == null ||
+  //       tile.elevationImage.loadingState != ETileImageLoadingState.Loaded) {
+  //     return _nullTileElevationImageRegion;
+  //   }
 
-    return TileImageRegion(tile.elevationImage, imageRect);
-  }
+  //   return TileImageRegion(tile.elevationImage, imageRect);
+  // }
 
-  /// Draw a single quad of a border cell
-  void _drawBorderCellQuad(Rect rect) {
-    // Set current cell uniforms (cell 0)
-    _setTileCellUniforms(0, null);
-    // Set left/right cell uniforms (cell 1)
-    _setTileCellUniforms(1, null);
-    // Set above/below cell uniforms (cell 2)
-    _setTileCellUniforms(2, null);
-    // Set diagonal cell uniforms (cell 3)
-    _setTileCellUniforms(3, null);
+  // /// Draw a single quad of a border cell
+  // void _drawBorderCellQuad(Rect rect) {
+  //   // Set current cell uniforms (cell 0)
+  //   _setTileCellUniforms(0, null);
+  //   // Set left/right cell uniforms (cell 1)
+  //   _setTileCellUniforms(1, null);
+  //   // Set above/below cell uniforms (cell 2)
+  //   _setTileCellUniforms(2, null);
+  //   // Set diagonal cell uniforms (cell 3)
+  //   _setTileCellUniforms(3, null);
 
-    // Our quad's corner coords
-    _gl.uniform2f(_uniWorldTopLeft, rect.min.x, rect.min.y);
-    _gl.uniform2f(_uniWorldBottomRight, rect.max.x, rect.max.y);
-    _gl.uniform2f(_uniUVTopLeft, 0, 0);
-    _gl.uniform2f(_uniUVBottomRight, 1, 1);
+  //   // Our quad's corner coords
+  //   _gl.uniform2f(_uniWorldTopLeft, rect.min.x, rect.min.y);
+  //   _gl.uniform2f(_uniWorldBottomRight, rect.max.x, rect.max.y);
+  //   _gl.uniform2f(_uniUVTopLeft, 0, 0);
+  //   _gl.uniform2f(_uniUVBottomRight, 1, 1);
 
-    // Draw a single quad
-    _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
-  }
+  //   // Draw a single quad
+  //   _gl.drawArrays(WebGL.TRIANGLE_STRIP, 0, 4);
+  // }
 
   Future<String> _downloadTextFile(String url) {
     return HttpRequest.getString(url);
@@ -560,17 +509,18 @@ class Map {
   }
 
   /// Determine if we can start loading another another tile image
-  bool _canStartLoadingTileImage() {
-    const maxNumSimultaneousImagesBeingLoaded = 6;
+  bool _canStartLoadingTileAsset() {
+    const maxNumSimultaneousAssetsBeingLoaded = 6;
 
-    return TileImage.numTileImagesLoading < maxNumSimultaneousImagesBeingLoaded;
+    return (TileImage.numTileImagesLoading + TileMesh.numTileMeshesLoading) <
+        maxNumSimultaneousAssetsBeingLoaded;
   }
 
   void _updateTileLoading(int desiredLod) {
     var tilesToLoad = _getTilesToLoad(desiredLod);
 
     for (var tile in tilesToLoad) {
-      if (!_canStartLoadingTileImage()) {
+      if (!_canStartLoadingTileAsset()) {
         return;
       }
 
@@ -579,7 +529,15 @@ class Map {
         tile.albedoImage.startLoading();
       }
 
-      if (!_canStartLoadingTileImage()) {
+      if (!_canStartLoadingTileAsset()) {
+        return;
+      }
+
+      if (tile.mesh.loadingState == ETileMeshLoadingState.Unloaded) {
+        tile.mesh.startLoading();
+      }
+
+      if (!_canStartLoadingTileAsset()) {
         return;
       }
 

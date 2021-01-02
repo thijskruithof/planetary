@@ -53,7 +53,7 @@ void main() async {
   canvasWidth = mapCanvas.width;
   canvasHeight = mapCanvas.height;
 
-  var dimensions = planetary.MapDimensions(512, 64, 32);
+  var dimensions = planetary.MapDimensions(512, 32, 32);
 
   map = planetary.Map(
       mapCanvas, streamingMiniMapCanvas, dimensions, 'tiles', 60.0);
@@ -62,8 +62,6 @@ void main() async {
       ng.AppComponent.defaultPitchAngle, false);
 
   await map.init();
-
-  print('planetary: initialized.');
 
   unawaited(window.animationFrame.then(render));
 

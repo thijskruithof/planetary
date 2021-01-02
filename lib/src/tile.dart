@@ -5,6 +5,7 @@ import 'package:planetary/planetary.dart';
 import 'rect.dart';
 import 'mapdimensions.dart';
 import 'tileimage.dart';
+import 'tilemesh.dart';
 
 /// A description of a single tile
 class Tile {
@@ -18,6 +19,7 @@ class Tile {
   bool isVisible;
   final TileImage albedoImage;
   final TileImage elevationImage;
+  final TileMesh mesh;
   List<Tile> neighbourTiles; // 3x3 neighbour tiles
 
   Tile(
@@ -40,8 +42,9 @@ class Tile {
         isVisible = false,
         albedoImage = TileImage(
             gl, tileImagesBasePath, mapDimensions, lod, cellIndex, ''),
-        elevationImage = TileImage(
-            gl, tileImagesBasePath, mapDimensions, lod, cellIndex, '_e'),
+        elevationImage = TileImage(gl, tileImagesBasePath + '/prev',
+            mapDimensions, lod, cellIndex, '_e'),
+        mesh = TileMesh(gl, tileImagesBasePath, mapDimensions, lod, cellIndex),
         neighbourTiles = List<Tile>(9);
 
   void visitChildren(Function(Tile) visitor) {
