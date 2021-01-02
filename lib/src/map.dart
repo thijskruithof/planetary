@@ -56,7 +56,7 @@ class Map {
   UniformLocation _uniViewProjectionMatrix;
   // UniformLocation _uniViewMatrix;
 
-  // UniformLocation _uniReliefDepth;
+  UniformLocation _uniReliefDepth;
 
   UniformLocation _uniAlbedoTopLeft;
   UniformLocation _uniAlbedoSize;
@@ -180,7 +180,7 @@ class Map {
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
     // _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
-    // _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
+    _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
 
     _uniAlbedoSampler =
         _gl.getUniformLocation(_shaderProgram, 'uAlbedoSampler');
@@ -192,7 +192,7 @@ class Map {
     assert(_uniWorldBottomRight != null);
     assert(_uniViewProjectionMatrix != null);
     // assert(_uniViewMatrix != null);
-    // assert(_uniReliefDepth != null);
+    assert(_uniReliefDepth != null);
 
     assert(_uniAlbedoSampler != null);
     assert(_uniAlbedoTopLeft != null);
@@ -259,7 +259,8 @@ class Map {
     // _gl.uniformMatrix4fv(_uniViewMatrix, false, _view.camera.viewMatrix);
 
     // Set the relief depth
-    // _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
+    //_gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
+    _gl.uniform1f(_uniReliefDepth, _reliefDepth);
 
     // Draw all visible tiles
     for (var visibleTile in visibleTiles) {
