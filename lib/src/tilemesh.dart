@@ -66,8 +66,27 @@ class TileMesh {
         Uint16List.view(request.response, 16 + numVertices * 3 * 4, numIndices);
 
     for (var i = 0; i < vertices.length; i += 3) {
-      vertices[i + 2] *= 0.04;
+      vertices[i + 2] = vertices[i + 2] * 0.10 - 5.0;
     }
+
+    // for (var i = 0; i < indices.length; i += 3) {
+    //   var a = indices[i];
+    //   var b = indices[i + 1];
+    //   var c = indices[i + 2];
+    //   var vA = vertices[a * 3 + 2];
+    //   var vB = vertices[b * 3 + 2];
+    //   var vC = vertices[c * 3 + 2];
+
+    //   // assert((vA[2] - vB).abs() <= 50);
+    //   // assert((vA[2] - vC).abs() <= 50);
+
+    //   if ((vB - vC).abs() > 127 ||
+    //       (vA - vC).abs() > 127 ||
+    //       (vA - vB).abs() > 127) {
+    //     print("OUCH! i=$i vA=$vA vB=$vB vC=$vC a=$a b=$b c=$c");
+    //     assert(false);
+    //   }
+    // }
 
     vertexBuffer = _gl.createBuffer();
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
