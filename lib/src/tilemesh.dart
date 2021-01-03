@@ -7,7 +7,7 @@ import 'mapdimensions.dart';
 enum ETileMeshLoadingState { Unloaded, Loading, Loaded }
 
 class TileMesh {
-  final String filePath;
+  String filePath;
   ETileMeshLoadingState loadingState;
   Buffer vertexBuffer;
   Buffer indexBuffer;
@@ -30,21 +30,34 @@ class TileMesh {
         loadingState = ETileMeshLoadingState.Unloaded;
 
   void startLoading() {
+    assert(loadingState == ETileMeshLoadingState.Unloaded);
     loadingState = ETileMeshLoadingState.Loading;
     numTileMeshesLoading++;
 
     HttpRequest.request(filePath, responseType: 'arraybuffer').then(_onLoaded);
   }
 
+  void unload() {
+    assert(loadingState == ETileMeshLoadingState.Loaded);
+
+    _gl.deleteBuffer(vertexBuffer);
+    _gl.deleteBuffer(indexBuffer);
+    vertexBuffer = null;
+    indexBuffer = null;
+
+    loadingState = ETileMeshLoadingState.Unloaded;
+  }
+
   void _onLoaded(request) {
     List<int> header = Uint32List.view(request.response);
+    assert(header.length == 99079);
+
     // var w = header[0];
     // var h = header[1];
     var numVertices = header[2];
     numIndices = header[3];
-
-    // print(
-    //     'LOADED MESH! $filePath is $w x $h and has $verts vertices and $inds indices.');
+    assert(numVertices == 16641);
+    assert(numIndices == 98304);
 
     // Upload our vertices and indices
     var vertices = Float32List.view(
@@ -52,19 +65,21 @@ class TileMesh {
     var indices =
         Uint16List.view(request.response, 16 + numVertices * 3 * 4, numIndices);
 
+    for (var i = 0; i < vertices.length; i += 3) {
+      vertices[i + 2] *= 0.04;
+    }
+
     vertexBuffer = _gl.createBuffer();
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
     _gl.bufferData(WebGL.ARRAY_BUFFER, vertices, WebGL.STATIC_DRAW);
+    assert(_gl.getError() == 0);
 
     indexBuffer = _gl.createBuffer();
     _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, indexBuffer);
     _gl.bufferData(WebGL.ELEMENT_ARRAY_BUFFER, indices, WebGL.STATIC_DRAW);
+    assert(_gl.getError() == 0);
 
     loadingState = ETileMeshLoadingState.Loaded;
     numTileMeshesLoading--;
   }
-
-  // void _onError(event) {
-  //   print('Error loading mesh from $filePath');
-  // }
 }

@@ -8,7 +8,7 @@ enum ETileImageLoadingState { Unloaded, Loading, Loaded }
 class TileImage {
   final String filePath;
   ETileImageLoadingState loadingState;
-  final Texture texture;
+  Texture texture;
   final RenderingContext _gl;
 
   static int numTileImagesLoading = 0;
@@ -24,8 +24,7 @@ class TileImage {
         filePath = (lod < mapDimensions.numLods - 1)
             ? '$tileImagesBasePath/$lod/${cellIndex.y}/${cellIndex.x}$filenameSuffix.jpg'
             : '$tileImagesBasePath/$lod/0/0$filenameSuffix.jpg',
-        loadingState = ETileImageLoadingState.Unloaded,
-        texture = gl.createTexture();
+        loadingState = ETileImageLoadingState.Unloaded;
 
   TileImage.fromFilePath(RenderingContext gl, String filePath)
       : _gl = gl,
@@ -34,6 +33,7 @@ class TileImage {
         texture = gl.createTexture();
 
   void startLoading() {
+    assert(loadingState == ETileImageLoadingState.Unloaded);
     loadingState = ETileImageLoadingState.Loading;
     numTileImagesLoading++;
 
@@ -43,7 +43,18 @@ class TileImage {
     image.src = filePath;
   }
 
+  void unload() {
+    assert(loadingState == ETileImageLoadingState.Loaded);
+
+    _gl.deleteTexture(texture);
+    texture = null;
+
+    loadingState = ETileImageLoadingState.Unloaded;
+  }
+
   void _onLoad(event) {
+    texture = _gl.createTexture();
+
     _gl.pixelStorei(WebGL.UNPACK_FLIP_Y_WEBGL, 0);
     _gl.bindTexture(WebGL.TEXTURE_2D, texture);
     _gl.texImage2D(

@@ -13,11 +13,11 @@ uniform mat4 uViewProjectionMatrix;
 varying vec2 vUV;
 // varying vec2 vReliefSampleDir;
 
-uniform float uReliefDepth;
+// uniform float uReliefDepth;
 
 void main() {
   vec2 worldPos = mix(uWorldTopLeft, uWorldBottomRight, aPosition.xy);
-  vec4 worldPos4 = vec4(worldPos, aPosition.z*uReliefDepth, 1.0);
+  vec4 worldPos4 = vec4(worldPos, aPosition.z, 1.0);
   gl_Position = uViewProjectionMatrix * worldPos4; 
 
   vUV = aPosition.xy;
