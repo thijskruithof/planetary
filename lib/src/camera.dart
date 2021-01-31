@@ -175,7 +175,7 @@ class Camera {
   }
 
   /// Calculate our view matrix
-  /// Note: based on p5hs's implementation of Camera._getLocalAxes
+  /// Note: based on p5js's implementation of Camera._getLocalAxes
   /// Returns a list with 16 doubles, representing a 4x4 matrix
   List<double> _calcViewMatrix(Vector3 pos, Vector3 targetPos, Vector3 up) {
     // calculate camera local Z vector

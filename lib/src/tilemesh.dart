@@ -4,7 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'mapdimensions.dart';
 
-enum ETileMeshLoadingState { Unloaded, Loading, Loaded }
+enum ETileMeshLoadingState { Unloaded, Downloading, Downloaded, Loaded }
 
 class TileMesh {
   String filePath;
@@ -12,6 +12,8 @@ class TileMesh {
   Buffer vertexBuffer;
   Buffer indexBuffer;
   int numIndices;
+  Float32List _downloadedVertices;
+  Uint16List _downloadedIndices;
   final RenderingContext _gl;
 
   static int numTileMeshesLoading = 0;
@@ -31,7 +33,7 @@ class TileMesh {
 
   void startLoading() {
     assert(loadingState == ETileMeshLoadingState.Unloaded);
-    loadingState = ETileMeshLoadingState.Loading;
+    loadingState = ETileMeshLoadingState.Downloading;
     numTileMeshesLoading++;
 
     HttpRequest.request(filePath, responseType: 'arraybuffer').then(_onLoaded);
@@ -48,7 +50,33 @@ class TileMesh {
     loadingState = ETileMeshLoadingState.Unloaded;
   }
 
+  void updateLoading() {
+    assert(loadingState != ETileMeshLoadingState.Unloaded);
+
+    if (loadingState == ETileMeshLoadingState.Downloaded) {
+      vertexBuffer = _gl.createBuffer();
+      _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
+      _gl.enableVertexAttribArray(0);
+      _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
+      _gl.bufferData(
+          WebGL.ARRAY_BUFFER, _downloadedVertices, WebGL.STATIC_DRAW);
+      assert(_gl.getError() == 0);
+
+      indexBuffer = _gl.createBuffer();
+      _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      _gl.bufferData(
+          WebGL.ELEMENT_ARRAY_BUFFER, _downloadedIndices, WebGL.STATIC_DRAW);
+      assert(_gl.getError() == 0);
+
+      _downloadedVertices = null;
+      _downloadedIndices = null;
+
+      loadingState = ETileMeshLoadingState.Loaded;
+    }
+  }
+
   void _onLoaded(request) {
+    assert(loadingState == ETileMeshLoadingState.Downloading);
     List<int> header = Uint32List.view(request.response);
     assert(header.length == 99079);
 
@@ -60,45 +88,12 @@ class TileMesh {
     assert(numIndices == 98304);
 
     // Upload our vertices and indices
-    var vertices = Float32List.view(
-        request.response, 16, numVertices * 3); // 3 floats per vertex
-    var indices =
-        Uint16List.view(request.response, 16 + numVertices * 3 * 4, numIndices);
+    _downloadedVertices = Float32List.fromList(Float32List.view(
+        request.response, 16, numVertices * 3)); // 3 floats per vertex
+    _downloadedIndices = Uint16List.fromList(Uint16List.view(
+        request.response, 16 + numVertices * 3 * 4, numIndices));
 
-    for (var i = 0; i < vertices.length; i += 3) {
-      vertices[i + 2] = vertices[i + 2] * 0.10 - 5.0;
-    }
-
-    // for (var i = 0; i < indices.length; i += 3) {
-    //   var a = indices[i];
-    //   var b = indices[i + 1];
-    //   var c = indices[i + 2];
-    //   var vA = vertices[a * 3 + 2];
-    //   var vB = vertices[b * 3 + 2];
-    //   var vC = vertices[c * 3 + 2];
-
-    //   // assert((vA[2] - vB).abs() <= 50);
-    //   // assert((vA[2] - vC).abs() <= 50);
-
-    //   if ((vB - vC).abs() > 127 ||
-    //       (vA - vC).abs() > 127 ||
-    //       (vA - vB).abs() > 127) {
-    //     print("OUCH! i=$i vA=$vA vB=$vB vC=$vC a=$a b=$b c=$c");
-    //     assert(false);
-    //   }
-    // }
-
-    vertexBuffer = _gl.createBuffer();
-    _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
-    _gl.bufferData(WebGL.ARRAY_BUFFER, vertices, WebGL.STATIC_DRAW);
-    assert(_gl.getError() == 0);
-
-    indexBuffer = _gl.createBuffer();
-    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    _gl.bufferData(WebGL.ELEMENT_ARRAY_BUFFER, indices, WebGL.STATIC_DRAW);
-    assert(_gl.getError() == 0);
-
-    loadingState = ETileMeshLoadingState.Loaded;
+    loadingState = ETileMeshLoadingState.Downloaded;
     numTileMeshesLoading--;
   }
 }

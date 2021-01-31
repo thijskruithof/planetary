@@ -56,7 +56,7 @@ class Map {
   UniformLocation _uniViewProjectionMatrix;
   // UniformLocation _uniViewMatrix;
 
-  // UniformLocation _uniReliefDepth;
+  UniformLocation _uniReliefDepth;
 
   UniformLocation _uniAlbedoTopLeft;
   UniformLocation _uniAlbedoSize;
@@ -170,6 +170,12 @@ class Map {
       throw InitShadersException(_gl.getProgramInfoLog(_shaderProgram));
     }
 
+    _gl.enable(WebGL.DEPTH_TEST);
+    _gl.depthFunc(WebGL.LESS);
+
+    _gl.enable(WebGL.CULL_FACE);
+    _gl.cullFace(WebGL.FRONT);
+
     _gl.clearColor(0.0, 0.0, 0.0, 1.0);
     _gl.viewport(0, 0, _screenWidth, _screenHeight);
 
@@ -180,7 +186,7 @@ class Map {
     _uniViewProjectionMatrix =
         _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
     // _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
-    // _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
+    _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
 
     _uniAlbedoSampler =
         _gl.getUniformLocation(_shaderProgram, 'uAlbedoSampler');
@@ -192,7 +198,7 @@ class Map {
     assert(_uniWorldBottomRight != null);
     assert(_uniViewProjectionMatrix != null);
     // assert(_uniViewMatrix != null);
-    // assert(_uniReliefDepth != null);
+    assert(_uniReliefDepth != null);
 
     assert(_uniAlbedoSampler != null);
     assert(_uniAlbedoTopLeft != null);
@@ -259,7 +265,7 @@ class Map {
     // _gl.uniformMatrix4fv(_uniViewMatrix, false, _view.camera.viewMatrix);
 
     // Set the relief depth
-    //_gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
+    _gl.uniform1f(_uniReliefDepth, _reliefDepth / pow(2.0, desiredLod));
     // _gl.uniform1f(_uniReliefDepth, _reliefDepth);
 
     // Draw all visible tiles
@@ -338,21 +344,17 @@ class Map {
     _gl.uniform2f(
         _uniWorldBottomRight, tile.worldRect.max.x, tile.worldRect.max.y);
 
-    var mesh = tile.mesh;
-    // var t = tile;
-    // while (t.lod < 2) {
-    //   t = t.parent;
-    //   mesh = t.mesh;
-    // }
-
     // Bind vertices and indices
-    _gl.bindBuffer(WebGL.ARRAY_BUFFER, mesh.vertexBuffer);
-    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+    _gl.bindBuffer(WebGL.ARRAY_BUFFER, tile.mesh.vertexBuffer);
+    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, tile.mesh.indexBuffer);
     _gl.enableVertexAttribArray(0);
     _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
 
     // Draw our triangles
-    _gl.drawElements(WebGL.TRIANGLES, mesh.numIndices, WebGL.UNSIGNED_SHORT, 0);
+    _gl.drawElements(
+        WebGL.TRIANGLES, tile.mesh.numIndices, WebGL.UNSIGNED_SHORT, 0);
+    _gl.bindBuffer(WebGL.ARRAY_BUFFER, null);
+    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, null);
   }
 
   /// Get the albedo image and the image's region
@@ -449,8 +451,17 @@ class Map {
   }
 
   void _updateTileLoading(int desiredLod) {
+    // Update the progress of any tiles already being loaded
+    _rootTile.visitChildren((tile) => {
+          if (tile.mesh.loadingState == ETileMeshLoadingState.Downloading ||
+              tile.mesh.loadingState == ETileMeshLoadingState.Downloaded)
+            tile.mesh.updateLoading()
+        });
+
+    // Determine which new tiles should be loaded in
     var tilesToLoad = _getTilesToLoad(desiredLod);
 
+    // Initiate loading for all new tiles
     for (var tile in tilesToLoad) {
       if (!_canStartLoadingTileAsset()) {
         return;
