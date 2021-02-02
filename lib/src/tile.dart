@@ -18,7 +18,7 @@ class Tile {
   final bool isValid;
   bool isVisible;
   final TileImage albedoImage;
-  final TileImage elevationImage;
+  // final TileImage elevationImage;
   final TileMesh mesh;
   List<Tile> neighbourTiles; // 3x3 neighbour tiles
 
@@ -42,8 +42,8 @@ class Tile {
         isVisible = false,
         albedoImage = TileImage(
             gl, tileImagesBasePath, mapDimensions, lod, cellIndex, ''),
-        elevationImage = TileImage(gl, tileImagesBasePath + '/prev',
-            mapDimensions, lod, cellIndex, '_e'),
+        // elevationImage = TileImage(gl, tileImagesBasePath + '/prev',
+        //     mapDimensions, lod, cellIndex, '_e'),
         mesh = TileMesh(gl, tileImagesBasePath, mapDimensions, lod, cellIndex),
         neighbourTiles = List<Tile>(9);
 

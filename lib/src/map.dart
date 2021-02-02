@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:html';
-import 'dart:typed_data';
 import 'dart:web_gl';
 import 'dart:math';
 import 'package:vector_math/vector_math.dart';
@@ -9,6 +8,7 @@ import 'streamingminimap.dart';
 import 'tileimage.dart';
 import 'tilemesh.dart';
 import 'tileimageregion.dart';
+import 'tilemeshindices.dart';
 import 'view.dart';
 import 'mapdimensions.dart';
 import 'tile.dart';
@@ -28,10 +28,6 @@ class InitShadersException implements Exception {
   }
 }
 
-// Float32List _quadVertices =
-//     Float32List.fromList([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]);
-// [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0]);
-
 /// A planetary map
 class Map {
   final RenderingContext _gl;
@@ -45,6 +41,7 @@ class Map {
   PanZoomInteraction _panZoomInteraction;
   double _reliefDepth = 0.5;
   StreamingMiniMap _streamingMiniMap;
+  TileMeshIndices _tileMeshIndices;
 
   TileImageRegion _nullTileAlbedoImageRegion;
   // TileImageRegion _nullTileElevationImageRegion;
@@ -139,6 +136,10 @@ class Map {
     //     TileImageRegion(nullTileElevationImage, Rect.unit());
     nullTileAlbedoImage.startLoading();
     // nullTileElevationImage.startLoading();
+
+    print('planetary: loading tile mesh indices.');
+    _tileMeshIndices =
+        TileMeshIndices(_gl, _tileImagesBasePath + '/tile.indices');
 
     print('planetary: loading shaders.');
 
@@ -322,6 +323,10 @@ class Map {
   void _drawTileMesh(Tile tile) {
     if (tile.mesh.loadingState != ETileMeshLoadingState.Loaded) return;
 
+    if (_tileMeshIndices.loadingState != ETileMeshIndicesLoadingState.Loaded) {
+      return;
+    }
+
     // Get our albedo image and region
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
     if (albedoImageRegion.image.loadingState != ETileImageLoadingState.Loaded) {
@@ -346,13 +351,13 @@ class Map {
 
     // Bind vertices and indices
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, tile.mesh.vertexBuffer);
-    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, tile.mesh.indexBuffer);
+    _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, _tileMeshIndices.indexBuffer);
     _gl.enableVertexAttribArray(0);
     _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
 
     // Draw our triangles
     _gl.drawElements(
-        WebGL.TRIANGLES, tile.mesh.numIndices, WebGL.UNSIGNED_SHORT, 0);
+        WebGL.TRIANGLES, _tileMeshIndices.numIndices, WebGL.UNSIGNED_SHORT, 0);
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, null);
     _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, null);
   }
@@ -480,14 +485,14 @@ class Map {
         tile.mesh.startLoading();
       }
 
-      if (!_canStartLoadingTileAsset()) {
-        return;
-      }
+      // if (!_canStartLoadingTileAsset()) {
+      //   return;
+      // }
 
-      // Do we have to load the elevation?
-      if (tile.elevationImage.loadingState == ETileImageLoadingState.Unloaded) {
-        tile.elevationImage.startLoading();
-      }
+      // // Do we have to load the elevation?
+      // if (tile.elevationImage.loadingState == ETileImageLoadingState.Unloaded) {
+      //   tile.elevationImage.startLoading();
+      // }
     }
   }
 
@@ -500,13 +505,13 @@ class Map {
       tile.albedoImage.unload();
     }
 
-    if (tile.elevationImage.loadingState == ETileImageLoadingState.Loaded) {
-      tile.elevationImage.unload();
-    }
+    // if (tile.elevationImage.loadingState == ETileImageLoadingState.Loaded) {
+    //   tile.elevationImage.unload();
+    // }
 
-    if (tile.mesh.loadingState == ETileMeshLoadingState.Loaded) {
-      tile.mesh.unload();
-    }
+    // if (tile.mesh.loadingState == ETileMeshLoadingState.Loaded) {
+    //   tile.mesh.unload();
+    // }
   }
 
   void _updateTileUnloading() {
@@ -525,10 +530,11 @@ class Map {
     _rootTile.visitChildren((tile) => {
           if (tile.lod >= desiredLod &&
               tile.isVisible &&
-              (tile.albedoImage.loadingState ==
-                      ETileImageLoadingState.Unloaded ||
-                  tile.elevationImage.loadingState ==
-                      ETileImageLoadingState.Unloaded))
+              (tile.albedoImage.loadingState == ETileImageLoadingState.Unloaded)
+          // ||
+          //tile.elevationImage.loadingState ==
+          //  ETileImageLoadingState.Unloaded
+          )
             {tilesPerLod[tile.lod].add(tile)}
         });
 

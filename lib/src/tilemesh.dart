@@ -10,10 +10,7 @@ class TileMesh {
   String filePath;
   ETileMeshLoadingState loadingState;
   Buffer vertexBuffer;
-  Buffer indexBuffer;
-  int numIndices;
   Float32List _downloadedVertices;
-  Uint16List _downloadedIndices;
   final RenderingContext _gl;
 
   static int numTileMeshesLoading = 0;
@@ -43,9 +40,7 @@ class TileMesh {
     assert(loadingState == ETileMeshLoadingState.Loaded);
 
     _gl.deleteBuffer(vertexBuffer);
-    _gl.deleteBuffer(indexBuffer);
     vertexBuffer = null;
-    indexBuffer = null;
 
     loadingState = ETileMeshLoadingState.Unloaded;
   }
@@ -62,14 +57,7 @@ class TileMesh {
           WebGL.ARRAY_BUFFER, _downloadedVertices, WebGL.STATIC_DRAW);
       assert(_gl.getError() == 0);
 
-      indexBuffer = _gl.createBuffer();
-      _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, indexBuffer);
-      _gl.bufferData(
-          WebGL.ELEMENT_ARRAY_BUFFER, _downloadedIndices, WebGL.STATIC_DRAW);
-      assert(_gl.getError() == 0);
-
       _downloadedVertices = null;
-      _downloadedIndices = null;
 
       loadingState = ETileMeshLoadingState.Loaded;
     }
@@ -78,20 +66,16 @@ class TileMesh {
   void _onLoaded(request) {
     assert(loadingState == ETileMeshLoadingState.Downloading);
     List<int> header = Uint32List.view(request.response);
-    assert(header.length == 99079);
+    assert(header.length == 49926);
 
     // var w = header[0];
     // var h = header[1];
     var numVertices = header[2];
-    numIndices = header[3];
     assert(numVertices == 16641);
-    assert(numIndices == 98304);
 
     // Upload our vertices and indices
     _downloadedVertices = Float32List.fromList(Float32List.view(
-        request.response, 16, numVertices * 3)); // 3 floats per vertex
-    _downloadedIndices = Uint16List.fromList(Uint16List.view(
-        request.response, 16 + numVertices * 3 * 4, numIndices));
+        request.response, 12, numVertices * 3)); // 3 floats per vertex
 
     loadingState = ETileMeshLoadingState.Downloaded;
     numTileMeshesLoading--;
