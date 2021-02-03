@@ -509,9 +509,9 @@ class Map {
     //   tile.elevationImage.unload();
     // }
 
-    // if (tile.mesh.loadingState == ETileMeshLoadingState.Loaded) {
-    //   tile.mesh.unload();
-    // }
+    if (tile.mesh.loadingState == ETileMeshLoadingState.Loaded) {
+      tile.mesh.unload();
+    }
   }
 
   void _updateTileUnloading() {
@@ -530,7 +530,9 @@ class Map {
     _rootTile.visitChildren((tile) => {
           if (tile.lod >= desiredLod &&
               tile.isVisible &&
-              (tile.albedoImage.loadingState == ETileImageLoadingState.Unloaded)
+              (tile.albedoImage.loadingState ==
+                      ETileImageLoadingState.Unloaded ||
+                  tile.mesh.loadingState == ETileMeshLoadingState.Unloaded)
           // ||
           //tile.elevationImage.loadingState ==
           //  ETileImageLoadingState.Unloaded
