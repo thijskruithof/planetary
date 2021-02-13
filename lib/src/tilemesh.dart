@@ -12,6 +12,8 @@ class TileMesh {
   Buffer vertexBuffer;
   Float32List _downloadedVertices;
   final RenderingContext _gl;
+  final int lod;
+  int cntr;
 
   static int numTileMeshesLoading = 0;
 
@@ -21,12 +23,8 @@ class TileMesh {
         filePath = (lod < mapDimensions.numLods - 1)
             ? '$tileImagesBasePath/$lod/${cellIndex.y}/${cellIndex.x}.el'
             : '$tileImagesBasePath/$lod/0/0.el',
-        loadingState = ETileMeshLoadingState.Unloaded;
-
-  TileMesh.fromFilePath(RenderingContext gl, String filePath)
-      : _gl = gl,
-        filePath = filePath,
-        loadingState = ETileMeshLoadingState.Unloaded;
+        loadingState = ETileMeshLoadingState.Unloaded,
+        lod = lod;
 
   void startLoading() {
     assert(loadingState == ETileMeshLoadingState.Unloaded);
@@ -49,15 +47,21 @@ class TileMesh {
     assert(loadingState != ETileMeshLoadingState.Unloaded);
 
     if (loadingState == ETileMeshLoadingState.Downloaded) {
+      if (cntr > 0) {
+        cntr--;
+        return;
+      }
       vertexBuffer = _gl.createBuffer();
       _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
       _gl.enableVertexAttribArray(0);
       _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
       _gl.bufferData(
           WebGL.ARRAY_BUFFER, _downloadedVertices, WebGL.STATIC_DRAW);
-      assert(_gl.getError() == 0);
+      var res = _gl.getError();
+      assert(res == 0);
 
       _downloadedVertices = null;
+      numTileMeshesLoading--;
 
       loadingState = ETileMeshLoadingState.Loaded;
     }
@@ -78,6 +82,20 @@ class TileMesh {
         request.response, 12, numVertices * 3)); // 3 floats per vertex
 
     loadingState = ETileMeshLoadingState.Downloaded;
-    numTileMeshesLoading--;
+    cntr = 100;
+
+    // vertexBuffer = _gl.createBuffer();
+    // _gl.bindBuffer(WebGL.ARRAY_BUFFER, vertexBuffer);
+    // _gl.enableVertexAttribArray(0);
+    // _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
+    // _gl.bufferData(WebGL.ARRAY_BUFFER, _downloadedVertices, WebGL.STATIC_DRAW);
+    // var res = _gl.getError();
+    // assert(res == 0);
+
+    // _downloadedVertices = null;
+
+    // loadingState = ETileMeshLoadingState.Loaded;
+
+    // numTileMeshesLoading--;
   }
 }

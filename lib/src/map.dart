@@ -55,6 +55,7 @@ class Map {
   // UniformLocation _uniViewMatrix;
 
   UniformLocation _uniReliefDepth;
+  UniformLocation _uniDebugMeshLod;
 
   UniformLocation _uniAlbedoTopLeft;
   UniformLocation _uniAlbedoSize;
@@ -189,6 +190,7 @@ class Map {
         _gl.getUniformLocation(_shaderProgram, 'uViewProjectionMatrix');
     // _uniViewMatrix = _gl.getUniformLocation(_shaderProgram, 'uViewMatrix');
     _uniReliefDepth = _gl.getUniformLocation(_shaderProgram, 'uReliefDepth');
+    _uniDebugMeshLod = _gl.getUniformLocation(_shaderProgram, 'uDebugMeshLod');
 
     _uniAlbedoSampler =
         _gl.getUniformLocation(_shaderProgram, 'uAlbedoSampler');
@@ -333,17 +335,19 @@ class Map {
     }
 
     // Get our mesh and indices
-    var meshRegion = _getTileMeshRegion(tile);
+    var meshRegion = _getTileMeshRegion(tile, albedoImageRegion.region);
     if (meshRegion == null ||
         meshRegion.mesh.loadingState != ETileMeshLoadingState.Loaded) {
       return;
     }
 
+    _gl.uniform1f(_uniDebugMeshLod, meshRegion.mesh.lod);
+
     // Set albedo image's uv coordinates
-    _gl.uniform2f(_uniAlbedoTopLeft, albedoImageRegion.region.min.x,
-        albedoImageRegion.region.min.y);
-    _gl.uniform2f(_uniAlbedoSize, albedoImageRegion.region.size.x,
-        albedoImageRegion.region.size.y);
+    _gl.uniform2f(
+        _uniAlbedoTopLeft, meshRegion.uvRect.min.x, meshRegion.uvRect.min.y);
+    _gl.uniform2f(
+        _uniAlbedoSize, meshRegion.uvRect.size.x, meshRegion.uvRect.size.y);
 
     // Bind albedo texture
     _gl.activeTexture(WebGL.TEXTURE0);
@@ -351,9 +355,10 @@ class Map {
     _gl.uniform1i(_uniAlbedoSampler, 0);
 
     // Our quad's corner coords
-    _gl.uniform2f(_uniWorldTopLeft, tile.worldRect.min.x, tile.worldRect.min.y);
-    _gl.uniform2f(
-        _uniWorldBottomRight, tile.worldRect.max.x, tile.worldRect.max.y);
+    _gl.uniform2f(_uniWorldTopLeft, meshRegion.worldRect.min.x,
+        meshRegion.worldRect.min.y);
+    _gl.uniform2f(_uniWorldBottomRight, meshRegion.worldRect.max.x,
+        meshRegion.worldRect.max.y);
 
     // Bind vertices and indices
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, meshRegion.mesh.vertexBuffer);
@@ -369,33 +374,39 @@ class Map {
   }
 
   /// Get the mesh and indices region
-  TileMeshRegion _getTileMeshRegion(Tile tile) {
-    //var numIndices = _tileMeshIndices.numIndices;
-    //var startIndex = 0;
-    var quadRect = Rect(
-        Vector2.zero(),
-        Vector2(_tileMeshIndices.numQuadsPerAxis.toDouble(),
-            _tileMeshIndices.numQuadsPerAxis.toDouble()));
+  TileMeshRegion _getTileMeshRegion(Tile tile, Rect albedoUvRect) {
+    var numIndices = _tileMeshIndices.numIndices;
+    var startIndex = 0;
+    var worldRect = tile.worldRect;
+    var uvRect = albedoUvRect;
 
     while (tile != null &&
         tile.mesh.loadingState != ETileMeshLoadingState.Loaded) {
-      // Recalculate our quad rect
-      var newImageRectSize = quadRect.size * 0.5;
-      var newImageRectOffset = (quadRect.min * 0.5) +
-          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
-              0.5);
-      quadRect =
+      startIndex = (startIndex ~/ 4) +
+          tile.childIndex.x * (_tileMeshIndices.numIndices ~/ 4) +
+          tile.childIndex.y * (_tileMeshIndices.numIndices ~/ 2);
+      numIndices = numIndices ~/ 4;
+      var newImageRectSize = worldRect.size * 2.0;
+      var newImageRectOffset = worldRect.min -
+          Vector2(tile.childIndex.x.toDouble() * worldRect.size.x,
+              tile.childIndex.y.toDouble() * worldRect.size.y);
+      var newUvRectSize = uvRect.size * 2.0;
+      var newUvRectOffset = uvRect.min -
+          Vector2(tile.childIndex.x.toDouble() * uvRect.size.x,
+              tile.childIndex.y.toDouble() * uvRect.size.y);
+      worldRect =
           Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
+      uvRect = Rect(newUvRectOffset, newUvRectOffset + newUvRectSize);
 
       tile = tile.parent;
     }
 
     if (tile == null ||
-        tile.albedoImage.loadingState != ETileImageLoadingState.Loaded) {
+        tile.mesh.loadingState != ETileMeshLoadingState.Loaded) {
       return null;
     }
 
-    return TileMeshRegion(tile.mesh, startIndex, numIndices);
+    return TileMeshRegion(tile.mesh, startIndex, numIndices, worldRect, uvRect);
   }
 
   /// Get the albedo image and the image's region
@@ -409,8 +420,8 @@ class Map {
       // Recalculate our image rect
       var newImageRectSize = imageRect.size * 0.5;
       var newImageRectOffset = (imageRect.min * 0.5) +
-          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
-              0.5);
+          Vector2(tile.childIndex.x.toDouble() * imageRect.size.x * 0.5,
+              tile.childIndex.y.toDouble() * imageRect.size.y * 0.5);
       imageRect =
           Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
 
