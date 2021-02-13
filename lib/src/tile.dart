@@ -13,8 +13,13 @@ class Tile {
   final List<Tile> children;
   final int lod;
   final Rect worldRect;
+
+  /// 2D index of this tile relative to the root
   final Point<int> cellIndex;
+
+  /// 2D index of this tile relative to the parent (0,0)..(1,1)
   final Point<int> childIndex;
+
   final bool isValid;
   bool isVisible;
   final TileImage albedoImage;

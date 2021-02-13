@@ -9,6 +9,7 @@ class TileMeshIndices {
   ETileMeshIndicesLoadingState loadingState;
   Buffer indexBuffer;
   int numIndices;
+  int numQuadsPerAxis;
   final RenderingContext _gl;
 
   TileMeshIndices(RenderingContext gl, String filePath)
@@ -22,10 +23,12 @@ class TileMeshIndices {
     List<int> header = Uint32List.view(request.response);
     assert(header.length == 49155);
 
-    // var w = header[0];
+    var w = header[0];
     // var h = header[1];
     numIndices = header[2];
     assert(numIndices == 98304);
+
+    numQuadsPerAxis = w;
 
     // Upload our vertices and indices
     var downloadedIndices =

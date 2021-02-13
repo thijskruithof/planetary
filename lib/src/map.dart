@@ -9,6 +9,7 @@ import 'tileimage.dart';
 import 'tilemesh.dart';
 import 'tileimageregion.dart';
 import 'tilemeshindices.dart';
+import 'tilemeshregion.dart';
 import 'view.dart';
 import 'mapdimensions.dart';
 import 'tile.dart';
@@ -321,8 +322,6 @@ class Map {
 
   /// Draw a single tile
   void _drawTileMesh(Tile tile) {
-    if (tile.mesh.loadingState != ETileMeshLoadingState.Loaded) return;
-
     if (_tileMeshIndices.loadingState != ETileMeshIndicesLoadingState.Loaded) {
       return;
     }
@@ -330,6 +329,13 @@ class Map {
     // Get our albedo image and region
     var albedoImageRegion = _getTileAlbedoImageRegion(tile);
     if (albedoImageRegion.image.loadingState != ETileImageLoadingState.Loaded) {
+      return;
+    }
+
+    // Get our mesh and indices
+    var meshRegion = _getTileMeshRegion(tile);
+    if (meshRegion == null ||
+        meshRegion.mesh.loadingState != ETileMeshLoadingState.Loaded) {
       return;
     }
 
@@ -350,16 +356,46 @@ class Map {
         _uniWorldBottomRight, tile.worldRect.max.x, tile.worldRect.max.y);
 
     // Bind vertices and indices
-    _gl.bindBuffer(WebGL.ARRAY_BUFFER, tile.mesh.vertexBuffer);
+    _gl.bindBuffer(WebGL.ARRAY_BUFFER, meshRegion.mesh.vertexBuffer);
     _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, _tileMeshIndices.indexBuffer);
     _gl.enableVertexAttribArray(0);
     _gl.vertexAttribPointer(0, 3, WebGL.FLOAT, false, 0, 0);
 
     // Draw our triangles
-    _gl.drawElements(
-        WebGL.TRIANGLES, _tileMeshIndices.numIndices, WebGL.UNSIGNED_SHORT, 0);
+    _gl.drawElements(WebGL.TRIANGLES, meshRegion.numIndices,
+        WebGL.UNSIGNED_SHORT, 2 * meshRegion.startIndex);
     _gl.bindBuffer(WebGL.ARRAY_BUFFER, null);
     _gl.bindBuffer(WebGL.ELEMENT_ARRAY_BUFFER, null);
+  }
+
+  /// Get the mesh and indices region
+  TileMeshRegion _getTileMeshRegion(Tile tile) {
+    //var numIndices = _tileMeshIndices.numIndices;
+    //var startIndex = 0;
+    var quadRect = Rect(
+        Vector2.zero(),
+        Vector2(_tileMeshIndices.numQuadsPerAxis.toDouble(),
+            _tileMeshIndices.numQuadsPerAxis.toDouble()));
+
+    while (tile != null &&
+        tile.mesh.loadingState != ETileMeshLoadingState.Loaded) {
+      // Recalculate our quad rect
+      var newImageRectSize = quadRect.size * 0.5;
+      var newImageRectOffset = (quadRect.min * 0.5) +
+          (Vector2(tile.childIndex.x.toDouble(), tile.childIndex.y.toDouble()) *
+              0.5);
+      quadRect =
+          Rect(newImageRectOffset, newImageRectOffset + newImageRectSize);
+
+      tile = tile.parent;
+    }
+
+    if (tile == null ||
+        tile.albedoImage.loadingState != ETileImageLoadingState.Loaded) {
+      return null;
+    }
+
+    return TileMeshRegion(tile.mesh, startIndex, numIndices);
   }
 
   /// Get the albedo image and the image's region
